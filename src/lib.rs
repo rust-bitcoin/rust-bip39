@@ -143,6 +143,15 @@ impl Language {
 			Language::Spanish => &spanish::WORDS,
 		}
 	}
+
+	/// The space to be used for this language.
+	fn space(self) -> char {
+		match self {
+			#[cfg(feature = "japanese")]
+			Language::Japanese => IDEAGRAPHIC_SPACE,
+			_ => ' ',
+		}
+	}
 }
 
 impl fmt::Display for Language {
@@ -153,13 +162,12 @@ impl fmt::Display for Language {
 
 /// A mnemonic code.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Mnemonic(Vec<&'static str>);
+pub struct Mnemonic(Language, Vec<u16>);
 
 impl Mnemonic {
 	/// Create a new [Mnemonic] in the specified language from the given entropy.
 	/// Entropy must be a multiple of 32 bits (4 bytes).
 	pub fn from_entropy_in(language: Language, entropy: &[u8]) -> Result<Mnemonic, Error> {
-		let word_list = language.word_list();
 		if entropy.len() % 4 != 0 {
 			return Err(Error::BadEntropyBitCount(entropy.len() * 8));
 		}
@@ -175,7 +183,7 @@ impl Mnemonic {
 			bits[8 * entropy.len() + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
 		}
 		let mlen = entropy.len() * 3 / 4;
-		let mut words = Vec::new();
+		let mut word_idxs = Vec::new();
 		for i in 0..mlen {
 			let mut idx = 0;
 			for j in 0..11 {
@@ -183,9 +191,9 @@ impl Mnemonic {
 					idx += 1 << (10 - j);
 				}
 			}
-			words.push(word_list[idx]);
+			word_idxs.push(idx);
 		}
-		Ok(Mnemonic(words))
+		Ok(Mnemonic(language, word_idxs))
 	}
 
 	/// Create a new English [Mnemonic] in from the given entropy.
@@ -197,17 +205,16 @@ impl Mnemonic {
 	/// Parse a mnemonic in the given language.
 	pub fn from_str_in(language: Language, s: &str) -> Result<Mnemonic, Error> {
 		let word_list = language.word_list();
-		let normalized = s.nfkd().to_string();
-		let words: Vec<_> = normalized.split(' ').collect();
+		let words: Vec<_> = s.split_whitespace().collect();
 		if words.len() < 6 || words.len() % 6 != 0 {
 			return Err(Error::BadWordCount(words.len()));
 		}
 
-		let mut mnemonic = Vec::with_capacity(words.len());
+		let mut word_idxs = Vec::with_capacity(words.len());
 		let mut bits = vec![false; words.len() * 11];
 		for (i, word) in words.iter().enumerate() {
 			if let Ok(idx) = word_list.binary_search(word) {
-				mnemonic.push(word_list[idx]);
+				word_idxs.push(idx as u16);
 
 				for j in 0..11 {
 					bits[i * 11 + j] = idx >> (10 - j) & 1 == 1;
@@ -232,7 +239,7 @@ impl Mnemonic {
 				return Err(Error::InvalidChecksum);
 			}
 		}
-		Ok(Mnemonic(mnemonic))
+		Ok(Mnemonic(language, word_idxs))
 	}
 
 	/// Convert this mnemonic to a vector of bytes in UTF-8 NKFD normalized.
@@ -255,10 +262,13 @@ impl Mnemonic {
 
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut words = self.0.iter();
+		let space = self.0.space();
+		let word_list = self.0.word_list();
+
+        let mut words = self.1.iter().map(|i| word_list[*i as usize]);
         write!(f, "{}", words.next().expect("wordlist never empty"))?;
 		for word in words {
-			write!(f, " {}", word)?;
+			write!(f, "{}{}", space, word)?;
 		}
 		Ok(())
 	}
@@ -287,8 +297,7 @@ impl str::FromStr for Mnemonic {
 			#[cfg(feature = "spanish")]
 			Language::Spanish,
 		];
-		let normalized = s.nfkd().to_string();
-		let first_word = normalized.splitn(2, ' ').next().unwrap();
+		let first_word = s.split_whitespace().next().unwrap();
 		if first_word.len() == 0 {
 			return Err(Error::BadWordCount(0));
 		}
@@ -332,23 +341,23 @@ mod test {
 		//! 46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b  spanish.txt
 
 		let checksums = [
-			(Language::SimplifiedChinese, "5c5942792bd8340cb8b27cd592f1015edf56a8c5b26276ee18a482428e7c5726"),
-			(Language::TraditionalChinese, "417b26b3d8500a4ae3d59717d7011952db6fc2fb84b807f3f94ac734e89c1b5f"),
-			(Language::Czech, "7e80e161c3e93d9554c2efb78d4e3cebf8fc727e9c52e03b83b94406bdcc95fc"),
-			(Language::English, "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda"),
-			(Language::French, "ebc3959ab7801a1df6bac4fa7d970652f1df76b683cd2f4003c941c63d517e59"),
-			(Language::Italian, "d392c49fdb700a24cd1fceb237c1f65dcc128f6b34a8aacb58b59384b5c648c2"),
-			(Language::Japanese, "2eed0aef492291e061633d7ad8117f1a2b03eb80a29d0e4e3117ac2528d05ffd"),
-			(Language::Korean, "9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60"),
-			(Language::Spanish, "46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b"),
+			("5c5942792bd8340cb8b27cd592f1015edf56a8c5b26276ee18a482428e7c5726", Language::SimplifiedChinese),
+			("417b26b3d8500a4ae3d59717d7011952db6fc2fb84b807f3f94ac734e89c1b5f", Language::TraditionalChinese),
+			("7e80e161c3e93d9554c2efb78d4e3cebf8fc727e9c52e03b83b94406bdcc95fc", Language::Czech),
+			("2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda", Language::English),
+			("ebc3959ab7801a1df6bac4fa7d970652f1df76b683cd2f4003c941c63d517e59", Language::French),
+			("d392c49fdb700a24cd1fceb237c1f65dcc128f6b34a8aacb58b59384b5c648c2", Language::Italian),
+			("2eed0aef492291e061633d7ad8117f1a2b03eb80a29d0e4e3117ac2528d05ffd", Language::Japanese),
+			("9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60", Language::Korean),
+			("46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b", Language::Spanish),
 		];
 
-		for (lang, sum) in &checksums {
+		for (sum, lang) in &checksums {
 			let mut digest = sha256::Hash::engine();
 			for word in lang.word_list().iter() {
 				write!(&mut digest, "{}\n", word).unwrap();
 			}
-			assert_eq!(sha256::Hash::from_engine(digest).to_string(), *sum,
+			assert_eq!(&sha256::Hash::from_engine(digest).to_string(), sum,
 				"word list for language {} failed checksum check", lang,
 			);
 		}
@@ -536,6 +545,8 @@ mod test {
 	#[cfg(feature = "japanese")]
 	#[test]
 	fn test_vectors_japanese() {
+		assert!(IDEAGRAPHIC_SPACE.is_whitespace());
+
 		// These vectors are tuples of
 		// (entropy, mnemonic, passphrase, seed)
 		let vectors = [
@@ -545,161 +556,138 @@ mod test {
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"a262d6fb6122ecf45be09c50492b31f92e9beb7d9a845987a02cefda57a15f9c467a17872029a9e92299b5cbdf306e3a0ee620245cbd508959b6cb7ca637bd55",
 			),
-
 			(
 				"7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
 				"そつう　れきだい　ほんやく　わかす　りくつ　ばいか　ろせん　やちん　そつう　れきだい　ほんやく　わかめ",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"aee025cbe6ca256862f889e48110a6a382365142f7d16f2b9545285b3af64e542143a577e9c144e101a6bdca18f8d97ec3366ebf5b088b1c1af9bc31346e60d9",
 			),
-
 			(
 				"80808080808080808080808080808080",
 				"そとづら　あまど　おおう　あこがれる　いくぶん　けいけん　あたえる　いよく　そとづら　あまど　おおう　あかちゃん",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"e51736736ebdf77eda23fa17e31475fa1d9509c78f1deb6b4aacfbd760a7e2ad769c714352c95143b5c1241985bcb407df36d64e75dd5a2b78ca5d2ba82a3544",
 			),
-
 			(
 				"ffffffffffffffffffffffffffffffff",
 				"われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　ろんぶん",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"4cd2ef49b479af5e1efbbd1e0bdc117f6a29b1010211df4f78e2ed40082865793e57949236c43b9fe591ec70e5bb4298b8b71dc4b267bb96ed4ed282c8f7761c",
 			),
-
 			(
 				"000000000000000000000000000000000000000000000000",
 				"あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あらいぐま",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"d99e8f1ce2d4288d30b9c815ae981edd923c01aa4ffdc5dee1ab5fe0d4a3e13966023324d119105aff266dac32e5cd11431eeca23bbd7202ff423f30d6776d69",
 			),
-
 			(
 				"7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
 				"そつう　れきだい　ほんやく　わかす　りくつ　ばいか　ろせん　やちん　そつう　れきだい　ほんやく　わかす　りくつ　ばいか　ろせん　やちん　そつう　れいぎ",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"eaaf171efa5de4838c758a93d6c86d2677d4ccda4a064a7136344e975f91fe61340ec8a615464b461d67baaf12b62ab5e742f944c7bd4ab6c341fbafba435716",
 			),
-
 			(
 				"808080808080808080808080808080808080808080808080",
 				"そとづら　あまど　おおう　あこがれる　いくぶん　けいけん　あたえる　いよく　そとづら　あまど　おおう　あこがれる　いくぶん　けいけん　あたえる　いよく　そとづら　いきなり",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"aec0f8d3167a10683374c222e6e632f2940c0826587ea0a73ac5d0493b6a632590179a6538287641a9fc9df8e6f24e01bf1be548e1f74fd7407ccd72ecebe425",
 			),
-
 			(
 				"ffffffffffffffffffffffffffffffffffffffffffffffff",
 				"われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　りんご",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"f0f738128a65b8d1854d68de50ed97ac1831fc3a978c569e415bbcb431a6a671d4377e3b56abd518daa861676c4da75a19ccb41e00c37d086941e471a4374b95",
 			),
-
 			(
 				"0000000000000000000000000000000000000000000000000000000000000000",
 				"あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　いってい",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"23f500eec4a563bf90cfda87b3e590b211b959985c555d17e88f46f7183590cd5793458b094a4dccc8f05807ec7bd2d19ce269e20568936a751f6f1ec7c14ddd",
 			),
-
 			(
 				"7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
 				"そつう　れきだい　ほんやく　わかす　りくつ　ばいか　ろせん　やちん　そつう　れきだい　ほんやく　わかす　りくつ　ばいか　ろせん　やちん　そつう　れきだい　ほんやく　わかす　りくつ　ばいか　ろせん　まんきつ",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"cd354a40aa2e241e8f306b3b752781b70dfd1c69190e510bc1297a9c5738e833bcdc179e81707d57263fb7564466f73d30bf979725ff783fb3eb4baa86560b05",
 			),
-
 			(
 				"8080808080808080808080808080808080808080808080808080808080808080",
 				"そとづら　あまど　おおう　あこがれる　いくぶん　けいけん　あたえる　いよく　そとづら　あまど　おおう　あこがれる　いくぶん　けいけん　あたえる　いよく　そとづら　あまど　おおう　あこがれる　いくぶん　けいけん　あたえる　うめる",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"6b7cd1b2cdfeeef8615077cadd6a0625f417f287652991c80206dbd82db17bf317d5c50a80bd9edd836b39daa1b6973359944c46d3fcc0129198dc7dc5cd0e68",
 			),
-
 			(
 				"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 				"われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　われる　らいう",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"a44ba7054ac2f9226929d56505a51e13acdaa8a9097923ca07ea465c4c7e294c038f3f4e7e4b373726ba0057191aced6e48ac8d183f3a11569c426f0de414623",
 			),
-
 			(
 				"77c2b00716cec7213839159e404db50d",
 				"せまい　うちがわ　あずき　かろう　めずらしい　だんち　ますく　おさめる　ていぼう　あたる　すあな　えしゃく",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"344cef9efc37d0cb36d89def03d09144dd51167923487eec42c487f7428908546fa31a3c26b7391a2b3afe7db81b9f8c5007336b58e269ea0bd10749a87e0193",
 			),
-
 			(
 				"b63a9c59a6e641f288ebc103017f1da9f8290b3da6bdef7b",
 				"ぬすむ　ふっかつ　うどん　こうりつ　しつじ　りょうり　おたがい　せもたれ　あつめる　いちりゅう　はんしゃ　ごますり　そんけい　たいちょう　らしんばん　ぶんせき　やすみ　ほいく",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"b14e7d35904cb8569af0d6a016cee7066335a21c1c67891b01b83033cadb3e8a034a726e3909139ecd8b2eb9e9b05245684558f329b38480e262c1d6bc20ecc4",
 			),
-
 			(
 				"3e141609b97933b66a060dcddc71fad1d91677db872031e85f4c015c5e7e8982",
 				"くのう　てぬぐい　そんかい　すろっと　ちきゅう　ほあん　とさか　はくしゅ　ひびく　みえる　そざい　てんすう　たんぴん　くしょう　すいようび　みけん　きさらぎ　げざん　ふくざつ　あつかう　はやい　くろう　おやゆび　こすう",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"32e78dce2aff5db25aa7a4a32b493b5d10b4089923f3320c8b287a77e512455443298351beb3f7eb2390c4662a2e566eec5217e1a37467af43b46668d515e41b",
 			),
-
 			(
 				"0460ef47585604c5660618db2e6a7e7f",
 				"あみもの　いきおい　ふいうち　にげる　ざんしょ　じかん　ついか　はたん　ほあん　すんぽう　てちがい　わかめ",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"0acf902cd391e30f3f5cb0605d72a4c849342f62bd6a360298c7013d714d7e58ddf9c7fdf141d0949f17a2c9c37ced1d8cb2edabab97c4199b142c829850154b",
 			),
-
 			(
 				"72f60ebac5dd8add8d2a25a797102c3ce21bc029c200076f",
 				"すろっと　にくしみ　なやむ　たとえる　へいこう　すくう　きない　けってい　とくべつ　ねっしん　いたみ　せんせい　おくりがな　まかい　とくい　けあな　いきおい　そそぐ",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"9869e220bec09b6f0c0011f46e1f9032b269f096344028f5006a6e69ea5b0b8afabbb6944a23e11ebd021f182dd056d96e4e3657df241ca40babda532d364f73",
 			),
-
 			(
 				"2c85efc7f24ee4573d2b81a6ec66cee209b2dcbd09d8eddc51e0215b0b68e416",
 				"かほご　きうい　ゆたか　みすえる　もらう　がっこう　よそう　ずっと　ときどき　したうけ　にんか　はっこう　つみき　すうじつ　よけい　くげん　もくてき　まわり　せめる　げざい　にげる　にんたい　たんそく　ほそく",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"713b7e70c9fbc18c831bfd1f03302422822c3727a93a5efb9659bec6ad8d6f2c1b5c8ed8b0b77775feaf606e9d1cc0a84ac416a85514ad59f5541ff5e0382481",
 			),
-
 			(
 				"eaebabb2383351fd31d703840b32e9e2",
 				"めいえん　さのう　めだつ　すてる　きぬごし　ろんぱ　はんこ　まける　たいおう　さかいし　ねんいり　はぶらし",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"06e1d5289a97bcc95cb4a6360719131a786aba057d8efd603a547bd254261c2a97fcd3e8a4e766d5416437e956b388336d36c7ad2dba4ee6796f0249b10ee961",
 			),
-
 			(
 				"7ac45cfe7722ee6c7ba84fbc2d5bd61b45cb2fe5eb65aa78",
 				"せんぱい　おしえる　ぐんかん　もらう　きあい　きぼう　やおや　いせえび　のいず　じゅしん　よゆう　きみつ　さといも　ちんもく　ちわわ　しんせいじ　とめる　はちみつ",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"1fef28785d08cbf41d7a20a3a6891043395779ed74503a5652760ee8c24dfe60972105ee71d5168071a35ab7b5bd2f8831f75488078a90f0926c8e9171b2bc4a",
 			),
-
 			(
 				"4fa1a8bc3e6d80ee1316050e862c1812031493212b7ec3f3bb1b08f168cabeef",
 				"こころ　いどう　きあつ　そうがんきょう　へいあん　せつりつ　ごうせい　はいち　いびき　きこく　あんい　おちつく　きこえる　けんとう　たいこ　すすめる　はっけん　ていど　はんおん　いんさつ　うなぎ　しねま　れいぼう　みつかる",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"43de99b502e152d4c198542624511db3007c8f8f126a30818e856b2d8a20400d29e7a7e3fdd21f909e23be5e3c8d9aee3a739b0b65041ff0b8637276703f65c2",
 			),
-
 			(
 				"18ab19a9f54a9274f03e5209a2ac8a91",
 				"うりきれ　さいせい　じゆう　むろん　とどける　ぐうたら　はいれつ　ひけつ　いずれ　うちあわせ　おさめる　おたく",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"3d711f075ee44d8b535bb4561ad76d7d5350ea0b1f5d2eac054e869ff7963cdce9581097a477d697a2a9433a0c6884bea10a2193647677977c9820dd0921cbde",
 			),
-
 			(
 				"18a2e1d81b8ecfb2a333adcb0c17a5b9eb76cc5d05db91a4",
 				"うりきれ　うねる　せっさたくま　きもち　めんきょ　へいたく　たまご　ぜっく　びじゅつかん　さんそ　むせる　せいじ　ねくたい　しはらい　せおう　ねんど　たんまつ　がいけん",
 				"㍍ガバヴァぱばぐゞちぢ十人十色",
 				"753ec9e333e616e9471482b4b70a18d413241f1e335c65cd7996f32b66cf95546612c51dcf12ead6f805f9ee3d965846b894ae99b24204954be80810d292fcdd",
 			),
-
 			(
 				"15da872c95a13dd738fbf50e427583ad61f18fd99f628c417a61cf8343c90419",
 				"うちゅう　ふそく　ひしょ　がちょう　うけもつ　めいそう　みかん　そざい　いばる　うけとる　さんま　さこつ　おうさま　ぱんつ　しひょう　めした　たはつ　いちぶ　つうじょう　てさぎょう　きつね　みすえる　いりぐち　かめれおん",
