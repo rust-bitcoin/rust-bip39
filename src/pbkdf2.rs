@@ -15,16 +15,16 @@ fn u32_to_array_be(val: u32) -> [u8; 4] {
 
 #[inline]
 fn xor(res: &mut [u8], salt: &[u8]) {
-    debug_assert!(salt.len() >= res.len(), "length mismatch in xor");
+	debug_assert!(salt.len() >= res.len(), "length mismatch in xor");
 
-    res.iter_mut().zip(salt.iter()).for_each(|(a, b)| *a ^= b);
+	res.iter_mut().zip(salt.iter()).for_each(|(a, b)| *a ^= b);
 }
 
 /// PBKDF2-HMAC-SHA512 implementation using bitcoin_hashes.
 pub(crate) fn pbkdf2(passphrase: &[u8], salt: &[u8], c: usize, res: &mut [u8]) {
 	let prf = hmac::HmacEngine::<sha512::Hash>::new(passphrase);
 
-    for (i, chunk) in res.chunks_mut(sha512::Hash::LEN).enumerate() {
+	for (i, chunk) in res.chunks_mut(sha512::Hash::LEN).enumerate() {
 		for v in chunk.iter_mut() { *v = 0; }
 
 		let mut salt = {
@@ -44,5 +44,5 @@ pub(crate) fn pbkdf2(passphrase: &[u8], salt: &[u8], c: usize, res: &mut [u8]) {
 
 			xor(chunk, &salt);
 		}
-    }
+	}
 }

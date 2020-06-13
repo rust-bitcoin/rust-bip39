@@ -1,0 +1,30 @@
+language: rust
+cache: cargo
+
+matrix:
+  include:
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+      env: BENCHES=true
+    - rust: 1.24.0
+    - rust: 1.22.0
+      env: ONLY_LOW_MEMORY=true
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y binutils-dev libunwind8-dev
+
+script:
+  - if not ${ONLY_LOW_MEMORY}; then cargo build --verbose; fi
+  - if not ${ONLY_LOW_MEMORY}; then cargo test --verbose; fi
+  - if not ${ONLY_LOW_MEMORY}; then cargo build --verbose --features rand,all-languages; fi
+  - if not ${ONLY_LOW_MEMORY}; then cargo test --verbose --features rand,all-languages; fi
+  # low-memory
+  - cargo build --verbose --features low-memory
+  - cargo test --verbose --features low-memory
+  - cargo build --verbose --features low-memory,rand,all-languages
+  - cargo test --verbose --features low-memory,rand,all-languages
+  # benchmarks
+  - if ${BENCHES}; then cargo bench --verbose --features rand; fi
+  - if ${BENCHES}; then cargo bench --verbose --features rand,japanese; fi
