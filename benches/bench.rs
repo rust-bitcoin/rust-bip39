@@ -8,9 +8,14 @@ use test::Bencher;
 use bip39::*;
 
 #[cfg(not(any(
-	feature = "chinese-simplified", feature = "chinese-traditional", feature = "czech",
-	feature = "french", feature = "italian", feature = "japanese", feature = "korean",
-	feature = "spanish"
+    feature = "chinese-simplified",
+    feature = "chinese-traditional",
+    feature = "czech",
+    feature = "french",
+    feature = "italian",
+    feature = "japanese",
+    feature = "korean",
+    feature = "spanish"
 )))]
 const LANG: Language = Language::English;
 #[cfg(feature = "chinese-simplified")]
@@ -34,11 +39,11 @@ const LANG: Language = Language::Spanish;
 fn validate(b: &mut Bencher) {
     let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
     let mnemonic = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
-	assert_eq!(mnemonic.word_count(), 24);
-	let phrase = mnemonic.as_str();
+    assert_eq!(mnemonic.word_count(), 24);
+    let phrase = mnemonic.as_str();
 
     b.iter(|| {
-        let _ = Mnemonic::validate_in(Language::English, &phrase);
+        let _ = Mnemonic::validate_in(LANG, &phrase).unwrap();
     });
 }
 

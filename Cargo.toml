@@ -36,9 +36,6 @@ all-languages = [
     "spanish"
 ]
 
-# Don't use a map to find words, but iterate through the list.
-low-memory = []
-
 [dependencies]
 bitcoin_hashes = "0.7.6"
 unicode-normalization = "=0.1.9"
