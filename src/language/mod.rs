@@ -54,16 +54,6 @@ pub enum Language {
 }
 
 impl Language {
-	/// Get words from the wordlist that start with the given prefix.
-	pub fn words_by_prefix(self, prefix: &str) -> &[&'static str] {
-		let first = match self.word_list().iter().position(|w| w.starts_with(prefix)) {
-			Some(i) => i,
-			None => return &[],
-		};
-		let count = self.word_list()[first..].iter().take_while(|w| w.starts_with(prefix)).count();
-		&self.word_list()[first .. first + count]
-	}
-
 	/// The word list for this language.
 	#[inline]
 	pub(crate) fn word_list(self) -> &'static [&'static str; 2048] {
@@ -86,6 +76,21 @@ impl Language {
 			#[cfg(feature = "spanish")]
 			Language::Spanish => &spanish::WORDS,
 		}
+	}
+
+	/// Get words from the wordlist that start with the given prefix.
+	pub fn words_by_prefix(self, prefix: &str) -> &[&'static str] {
+		// The words in the wordlist are ordered lexicographically. This means
+		// that we cannot use `binary_search` to find words more efficiently,
+		// because the Rust ordering is based on the byte values. However, it
+		// does mean that words that share a prefix will follow each other.
+
+		let first = match self.word_list().iter().position(|w| w.starts_with(prefix)) {
+			Some(i) => i,
+			None => return &[],
+		};
+		let count = self.word_list()[first..].iter().take_while(|w| w.starts_with(prefix)).count();
+		&self.word_list()[first .. first + count]
 	}
 
 	/// Get the index of the word in the word list.
