@@ -19,65 +19,6 @@ mod korean;
 #[cfg(feature = "spanish")]
 mod spanish;
 
-#[cfg(not(feature = "low-memory"))]
-mod lazy {
-	use std::cell::Cell;
-	use std::collections::HashMap;
-	use std::sync::Once;
-
-	/// Type used to load a word map in a lazy fashion.
-	pub(crate) struct LazyMap(Cell<Option<HashMap<&'static str, u16>>>, Once);
-
-	impl LazyMap {
-		#[allow(deprecated)]
-		const INIT: Self = LazyMap(Cell::new(None), ::std::sync::ONCE_INIT);
-
-		#[inline(always)]
-		pub fn get(&'static self, list: &'static [&'static str]) -> &HashMap<&'static str, u16> {
-			self.1.call_once(|| {
-				let mut map = HashMap::new();
-				for (idx, word) in list.iter().enumerate() {
-					map.insert(*word, idx as u16);
-				}
-				self.0.set(Some(map));
-			});
-
-			// `self.0` is guaranteed to be `Some` by this point
-			// The `Once` will catch and propagate panics
-			unsafe {
-				match *self.0.as_ptr() {
-					Some(ref x) => x,
-					None => panic!(),
-				}
-			}
-		}
-	}
-
-	// This marker impl is required for the Cell to work.
-	// The LazyMap is an implementation identical to lazy_static's.
-	// We assume lazy_static's exact same usage is considered safe.
-	#[cfg(not(feature = "low-memory"))]
-	unsafe impl Sync for LazyMap {}
-
-	pub(crate) static LAZY_MAP_ENGLISH: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "chinese-simplified")]
-	pub(crate) static LAZY_MAP_CHINESE_SIMPLIFIED: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "chinese-traditional")]
-	pub(crate) static LAZY_MAP_CHINESE_TRADITIONAL: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "czech")]
-	pub(crate) static LAZY_MAP_CZECH: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "french")]
-	pub(crate) static LAZY_MAP_FRENCH: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "italian")]
-	pub(crate) static LAZY_MAP_ITALIAN: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "japanese")]
-	pub(crate) static LAZY_MAP_JAPANESE: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "korean")]
-	pub(crate) static LAZY_MAP_KOREAN: LazyMap = LazyMap::INIT;
-	#[cfg(feature = "spanish")]
-	pub(crate) static LAZY_MAP_SPANISH: LazyMap = LazyMap::INIT;
-}
-
 /// Language to be used for the mnemonic phrase.
 ///
 /// The English language is always available, other languages are enabled using
@@ -147,28 +88,10 @@ impl Language {
 		}
 	}
 
-	/// The word map that maps words to the index in the word list for this language.
-	#[cfg(not(feature = "low-memory"))]
-	pub(crate) fn word_map(self) -> &'static ::std::collections::HashMap<&'static str, u16> {
-		match self {
-			Language::English => lazy::LAZY_MAP_ENGLISH.get(self.word_list()),
-			#[cfg(feature = "chinese-simplified")]
-			Language::SimplifiedChinese => lazy::LAZY_MAP_CHINESE_SIMPLIFIED.get(self.word_list()),
-			#[cfg(feature = "chinese-traditional")]
-			Language::TraditionalChinese => lazy::LAZY_MAP_CHINESE_TRADITIONAL.get(self.word_list()),
-			#[cfg(feature = "czech")]
-			Language::Czech => lazy::LAZY_MAP_CZECH.get(self.word_list()),
-			#[cfg(feature = "french")]
-			Language::French => lazy::LAZY_MAP_FRENCH.get(self.word_list()),
-			#[cfg(feature = "italian")]
-			Language::Italian => lazy::LAZY_MAP_ITALIAN.get(self.word_list()),
-			#[cfg(feature = "japanese")]
-			Language::Japanese => lazy::LAZY_MAP_JAPANESE.get(self.word_list()),
-			#[cfg(feature = "korean")]
-			Language::Korean => lazy::LAZY_MAP_KOREAN.get(self.word_list()),
-			#[cfg(feature = "spanish")]
-			Language::Spanish => lazy::LAZY_MAP_SPANISH.get(self.word_list()),
-		}
+	/// Get the index of the word in the word list.
+	#[inline]
+	pub(crate) fn find_word(self, word: &str) -> Option<usize> {
+		self.word_list().iter().position(|w| *w == word)
 	}
 }
 
@@ -222,8 +145,6 @@ mod tests {
 			for (_idx, word) in lang.word_list().iter().enumerate() {
 				assert!(::unicode_normalization::is_nfkd(&word));
 				write!(&mut digest, "{}\n", word).unwrap();
-				#[cfg(not(feature = "low-memory"))]
-				assert_eq!(_idx, lang.word_map()[word] as usize);
 			}
 			assert_eq!(&sha256::Hash::from_engine(digest).to_string(), sum,
 				"word list for language {} failed checksum check", lang,

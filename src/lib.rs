@@ -179,9 +179,6 @@ impl Mnemonic {
 
 	/// Static method to validate a mnemonic in a given language.
 	pub fn validate_in(language: Language, s: &str) -> Result<(), Error> {
-		#[cfg(not(feature = "low-memory"))]
-		let word_map = language.word_map();
-
 		let words: Vec<&str> = s.split_whitespace().collect();
 		if words.len() < 6 || words.len() % 6 != 0 || words.len() > 24 {
 			return Err(Error::BadWordCount(words.len()));
@@ -189,12 +186,7 @@ impl Mnemonic {
 
 		let mut bits = vec![false; words.len() * 11];
 		for (i, word) in words.iter().enumerate() {
-			#[cfg(not(feature = "low-memory"))]
-			let found = word_map.get(word);
-			#[cfg(feature = "low-memory")]
-			let found = language.word_list().iter().position(|w| w == word);
-
-			if let Some(idx) = found {
+			if let Some(idx) = language.find_word(word) {
 				for j in 0..11 {
 					bits[i * 11 + j] = idx >> (10 - j) & 1 == 1;
 				}
@@ -250,12 +242,7 @@ impl Mnemonic {
 			return Err(Error::BadWordCount(0));
 		}
 		for language in &languages {
-			#[cfg(not(feature = "low-memory"))]
-			let found = language.word_map().get(first_word).is_some();
-			#[cfg(feature = "low-memory")]
-			let found = language.word_list().iter().any(|w| *w == first_word);
-
-			if found {
+			if language.find_word(first_word).is_some() {
 				return Ok(*language);
 			}
 		}
@@ -320,8 +307,6 @@ impl Mnemonic {
 		// values that were already previously validated.
 
 		let language = Mnemonic::guess_language(self.as_str()).unwrap();
-		#[cfg(not(feature = "low-memory"))]
-		let word_map = language.word_map();
 
 		// Preallocate enough space for the longest possible word list
 		let mut entropy = Vec::with_capacity(33);
@@ -330,10 +315,7 @@ impl Mnemonic {
 
 		let words: Vec<&str> = self.as_str().split_whitespace().collect();
 		for word in &words {
-			#[cfg(not(feature = "low-memory"))]
-			let idx = *word_map.get(word).unwrap();
-			#[cfg(feature = "low-memory")]
-			let idx = language.word_list().iter().position(|w| w == word).unwrap();
+			let idx = language.find_word(word).unwrap();
 
 			remainder |= ((idx as u32) << (32 - 11)) >> offset;
 			offset += 11;
