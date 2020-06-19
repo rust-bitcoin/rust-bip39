@@ -78,9 +78,9 @@ impl Language {
 		}
 	}
 
-	/// Get words from the wordlist that start with the given prefix.
+	/// Get words from the word list that start with the given prefix.
 	pub fn words_by_prefix(self, prefix: &str) -> &[&'static str] {
-		// The words in the wordlist are ordered lexicographically. This means
+		// The words in the word list are ordered lexicographically. This means
 		// that we cannot use `binary_search` to find words more efficiently,
 		// because the Rust ordering is based on the byte values. However, it
 		// does mean that words that share a prefix will follow each other.
@@ -116,8 +116,8 @@ mod tests {
 		feature = "spanish"
 	))]
 	#[test]
-	fn validate_wordlist_checksums() {
-		//! In this test, we ensure that the wordlists are identical.
+	fn validate_word_list_checksums() {
+		//! In this test, we ensure that the word lists are identical.
 		//!
 		//! They are as follows in the bips repository:
 		//! 5c5942792bd8340cb8b27cd592f1015edf56a8c5b26276ee18a482428e7c5726  chinese_simplified.txt
