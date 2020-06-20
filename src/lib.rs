@@ -54,8 +54,7 @@ pub enum Error {
 	BadWordCount(usize),
 	/// Mnemonic contains an unknown word.
 	UnknownWord(String),
-	/// Entropy was not a multiple of 32 bits.
-	/// Parameter is the number of bits in the entropy.
+	/// Entropy was not a multiple of 32 bits or between 128-256n bits in length.
 	BadEntropyBitCount(usize),
 	/// The mnemonic has an invalid checksum.
 	InvalidChecksum,
@@ -72,7 +71,7 @@ impl fmt::Display for Error {
 				w, bitcoin_hashes::hex::ToHex::to_hex(w.as_bytes()),
 			),
 			Error::BadEntropyBitCount(c) => write!(f,
-				"entropy was not a multiple of 32 bits: {} bits", c,
+				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
 		}
@@ -118,9 +117,13 @@ impl Mnemonic {
 	}
 
 	/// Create a new [Mnemonic] in the specified language from the given entropy.
-	/// Entropy must be a multiple of 32 bits (4 bytes).
+	/// Entropy must be a multiple of 32 bits (4 bytes) and 128-256 bits in length.
 	pub fn from_entropy_in(language: Language, entropy: &[u8]) -> Result<Mnemonic, Error> {
 		if entropy.len() % 4 != 0 {
+			return Err(Error::BadEntropyBitCount(entropy.len() * 8));
+		}
+
+		if (entropy.len() * 8) < 128 || (entropy.len() * 8) > 256 {
 			return Err(Error::BadEntropyBitCount(entropy.len() * 8));
 		}
 
@@ -150,7 +153,7 @@ impl Mnemonic {
 	}
 
 	/// Create a new English [Mnemonic] in from the given entropy.
-	/// Entropy must be a multiple of 32 bits (4 bytes).
+	/// Entropy must be a multiple of 32 bits (4 bytes) and 128-256 bits in length.
 	pub fn from_entropy(entropy: &[u8]) -> Result<Mnemonic, Error> {
 		Mnemonic::from_entropy_in(Language::English, entropy)
 	}
@@ -529,6 +532,27 @@ mod tests {
 				"primary advice cage absurd amount doctor acoustic avoid letter advice cage above",
 			),
 			Err(Error::InvalidChecksum)
+		);
+	}
+
+	#[test]
+	fn test_invalid_entropy() {
+		//between 128 and 256 bits, but not divisible by 32
+		assert_eq!(
+			Mnemonic::from_entropy(&vec![b'x'; 17]),
+			Err(Error::BadEntropyBitCount(136))
+		);
+
+		//less than 128 bits
+		assert_eq!(
+			Mnemonic::from_entropy(&vec![b'x'; 4]),
+			Err(Error::BadEntropyBitCount(32))
+		);
+
+		//greater than 256 bits
+		assert_eq!(
+			Mnemonic::from_entropy(&vec![b'x'; 36]),
+			Err(Error::BadEntropyBitCount(288))
 		);
 	}
 
