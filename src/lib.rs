@@ -58,6 +58,8 @@ pub enum Error {
 	BadEntropyBitCount(usize),
 	/// The mnemonic has an invalid checksum.
 	InvalidChecksum,
+	/// The word list can be interpreted as multiple languages.
+	AmbiguousWordList(Vec<Language>),
 }
 
 impl fmt::Display for Error {
@@ -74,6 +76,7 @@ impl fmt::Display for Error {
 				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
+			Error::AmbiguousWordList(ref langs) => write!(f, "ambiguous word list: {:?}", langs),
 		}
 	}
 }
@@ -216,47 +219,50 @@ impl Mnemonic {
 		Ok(())
 	}
 
-	/// Guess the language of the mnemonic based on the first word.
+	/// Determine the language of the mnemonic based on the first word.
 	///
-	/// This works as official word lists are made as such that a word never
-	/// appears in two different word lists.
-	pub fn guess_language(s: &str) -> Result<Language, Error> {
-		let languages = [
-			Language::English,
-			#[cfg(feature = "chinese-simplified")]
-			Language::SimplifiedChinese,
-			#[cfg(feature = "chinese-traditional")]
-			Language::TraditionalChinese,
-			#[cfg(feature = "czech")]
-			Language::Czech,
-			#[cfg(feature = "french")]
-			Language::French,
-			#[cfg(feature = "italian")]
-			Language::Italian,
-			#[cfg(feature = "japanese")]
-			Language::Japanese,
-			#[cfg(feature = "korean")]
-			Language::Korean,
-			#[cfg(feature = "spanish")]
-			Language::Spanish,
-		];
+	/// Some word lists don't guarantee that their words don't occur in other
+	/// word lists. In the extremely unlikely case that a word list can be
+	/// interpreted in multiple languages, an [Error::AmbiguousWordList] is
+	/// returned, containing the possible languages.
+	pub fn language_of(s: &str) -> Result<Language, Error> {
+		// First we try wordlists that have guaranteed unique words.
 		let first_word = s.split_whitespace().next().unwrap();
 		if first_word.len() == 0 {
 			return Err(Error::BadWordCount(0));
 		}
-		for language in &languages {
+		for language in Language::all().iter().filter(|l| l.unique_words()) {
 			if language.find_word(first_word).is_some() {
 				return Ok(*language);
 			}
 		}
-		Err(Error::UnknownWord(first_word.to_owned()))
+
+		// If that didn't work, we start with all possible languages
+		// (those without unique words), and eliminate until there is
+		// just one left.
+		let mut langs: Vec<_> =
+			Language::all().iter().filter(|l| !l.unique_words()).cloned().collect();
+		for word in s.split_whitespace() {
+			langs.retain(|l| l.find_word(word).is_some());
+
+			// If there is just one language left, return it.
+			if langs.len() == 1 {
+				return Ok(langs[0]);
+			}
+
+			// If all languages were eliminated, it's an invalid word.
+			if langs.is_empty() {
+				return Err(Error::UnknownWord(word.to_owned()))
+			}
+		}
+		Err(Error::AmbiguousWordList(langs))
 	}
 
 	/// Parse a mnemonic and detect the language from the enabled languages.
 	pub fn parse<'a, S: Into<Cow<'a, str>>>(s: S) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
-		let language = Mnemonic::guess_language(cow.as_ref())?;
+		let language = Mnemonic::language_of(cow.as_ref())?;
 		Mnemonic::validate_in(language, cow.as_ref())?;
 		Ok(Mnemonic(cow.into_owned()))
 	}
@@ -309,7 +315,7 @@ impl Mnemonic {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
 
-		let language = Mnemonic::guess_language(self.as_str()).unwrap();
+		let language = Mnemonic::language_of(self.as_str()).unwrap();
 
 		// Preallocate enough space for the longest possible word list
 		let mut entropy = Vec::with_capacity(33);
@@ -360,6 +366,15 @@ mod tests {
 	use super::*;
 
 	use bitcoin_hashes::hex::FromHex;
+
+	#[cfg(feature = "rand")]
+	#[test]
+	fn test_language_of() {
+		for lang in Language::all() {
+			let m = Mnemonic::generate_in(*lang, 24).unwrap();
+			assert_eq!(*lang, Mnemonic::language_of(m.as_str()).unwrap());
+		}
+	}
 
 	#[test]
 	fn test_vectors_english() {

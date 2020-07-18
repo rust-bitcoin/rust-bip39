@@ -54,6 +54,30 @@ pub enum Language {
 }
 
 impl Language {
+	/// The list of supported languages.
+	/// Language support is managed by compile features.
+	pub fn all() -> &'static [Language] {
+		&[
+			Language::English,
+			#[cfg(feature = "chinese-simplified")]
+			Language::SimplifiedChinese,
+			#[cfg(feature = "chinese-traditional")]
+			Language::TraditionalChinese,
+			#[cfg(feature = "czech")]
+			Language::Czech,
+			#[cfg(feature = "french")]
+			Language::French,
+			#[cfg(feature = "italian")]
+			Language::Italian,
+			#[cfg(feature = "japanese")]
+			Language::Japanese,
+			#[cfg(feature = "korean")]
+			Language::Korean,
+			#[cfg(feature = "spanish")]
+			Language::Spanish,
+		]
+	}
+
 	/// The word list for this language.
 	#[inline]
 	pub(crate) fn word_list(self) -> &'static [&'static str; 2048] {
@@ -75,6 +99,31 @@ impl Language {
 			Language::Korean => &korean::WORDS,
 			#[cfg(feature = "spanish")]
 			Language::Spanish => &spanish::WORDS,
+		}
+	}
+
+	/// Returns true if all words in the list are guaranteed to
+	/// only be in this list and not in any other.
+	#[inline]
+	pub(crate) fn unique_words(self) -> bool {
+		match self {
+			Language::English => false,
+			#[cfg(feature = "chinese-simplified")]
+			Language::SimplifiedChinese => false,
+			#[cfg(feature = "chinese-traditional")]
+			Language::TraditionalChinese => false,
+			#[cfg(feature = "czech")]
+			Language::Czech => true,
+			#[cfg(feature = "french")]
+			Language::French => false,
+			#[cfg(feature = "italian")]
+			Language::Italian => true,
+			#[cfg(feature = "japanese")]
+			Language::Japanese => true,
+			#[cfg(feature = "korean")]
+			Language::Korean => true,
+			#[cfg(feature = "spanish")]
+			Language::Spanish => true,
 		}
 	}
 
@@ -170,4 +219,36 @@ mod tests {
 		let res = lang.words_by_prefix("woof");
 		assert!(res.is_empty());
 	}
+
+	#[cfg(all(
+		feature = "chinese-simplified", feature = "chinese-traditional", feature = "czech",
+		feature = "french", feature = "italian", feature = "japanese", feature = "korean",
+		feature = "spanish"
+	))]
+    #[test]
+    fn words_overlaps() {
+		use std::collections::HashMap;
+
+		// We keep a map of all words and the languages they occur in.
+		// Afterwards, we make sure that no word maps to multiple languages
+		// if either of those is guaranteed to have unique words.
+        let mut words: HashMap<&str, Vec<Language>> = HashMap::new();
+		for lang in Language::all().iter() {
+			for word in lang.word_list().iter() {
+				words.entry(word).or_insert(Vec::new()).push(*lang);
+			}
+		}
+
+		let mut ok = true;
+		for (word, langs) in words.into_iter() {
+			if langs.len() == 1 {
+				continue;
+			}
+			if langs.iter().any(|l| l.unique_words()) {
+				println!("Word {} is not unique: {:?}", word, langs);
+				ok = false;
+			}
+		}
+		assert!(ok);
+    }
 }
