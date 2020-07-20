@@ -219,7 +219,11 @@ impl Mnemonic {
 		Ok(())
 	}
 
-	/// Determine the language of the mnemonic based on the first word.
+	/// Determine the language of the mnemonic.
+	///
+	/// NOTE: This method only guarantees that the returned language is the
+	/// correct language on the assumption that the mnemonic is valid.
+	/// It does not itself validate the mnemonic.
 	///
 	/// Some word lists don't guarantee that their words don't occur in other
 	/// word lists. In the extremely unlikely case that a word list can be
