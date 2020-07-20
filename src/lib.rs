@@ -102,7 +102,7 @@ impl error::Error for Error {
 /// mnemonic from all the supported languages. (Languages have to be explicitly enabled using
 /// the Cargo features.)
 ///
-/// Supported number of words are 6, 12, 18 and 24.
+/// Supported number of words are 12, 18 and 24.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Mnemonic(String);
 // The content of the mnemonic is ensured to be NFKD-normalized UTF-8.
@@ -366,6 +366,14 @@ mod tests {
 	use super::*;
 
 	use bitcoin_hashes::hex::FromHex;
+
+	#[cfg(feature = "rand")]
+	#[test]
+	fn test_bit_counts() {
+		let _ = Mnemonic::generate(12).unwrap();
+		let _ = Mnemonic::generate(18).unwrap();
+		let _ = Mnemonic::generate(24).unwrap();
+	}
 
 	#[cfg(feature = "rand")]
 	#[test]
