@@ -225,14 +225,14 @@ mod tests {
 		feature = "french", feature = "italian", feature = "japanese", feature = "korean",
 		feature = "spanish"
 	))]
-    #[test]
-    fn words_overlaps() {
+	#[test]
+	fn words_overlaps() {
 		use std::collections::HashMap;
 
 		// We keep a map of all words and the languages they occur in.
 		// Afterwards, we make sure that no word maps to multiple languages
 		// if either of those is guaranteed to have unique words.
-        let mut words: HashMap<&str, Vec<Language>> = HashMap::new();
+		let mut words: HashMap<&str, Vec<Language>> = HashMap::new();
 		for lang in Language::all().iter() {
 			for word in lang.word_list().iter() {
 				words.entry(word).or_insert(Vec::new()).push(*lang);
@@ -250,5 +250,5 @@ mod tests {
 			}
 		}
 		assert!(ok);
-    }
+	}
 }
