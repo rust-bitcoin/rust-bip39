@@ -44,7 +44,7 @@ pub use language::Language;
 
 
 /// A BIP39 error.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
 	/// Mnemonic has a word count that is not a multiple of 6.
 	BadWordCount(usize),
@@ -74,11 +74,6 @@ impl fmt::Display for Error {
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
 			Error::AmbiguousWordList(ref langs) => write!(f, "ambiguous word list: {:?}", langs),
 		}
-	}
-}
-impl fmt::Debug for Error {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		fmt::Display::fmt(self, f)
 	}
 }
 
