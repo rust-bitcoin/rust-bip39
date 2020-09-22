@@ -148,13 +148,13 @@ impl Mnemonic {
 		Ok(Mnemonic(words.join(" ")))
 	}
 
-	/// Create a new English [Mnemonic] in from the given entropy.
+	/// Create a new English [Mnemonic] from the given entropy.
 	/// Entropy must be a multiple of 32 bits (4 bytes) and 128-256 bits in length.
 	pub fn from_entropy(entropy: &[u8]) -> Result<Mnemonic, Error> {
 		Mnemonic::from_entropy_in(Language::English, entropy)
 	}
 
-	/// Generate a new Mnemonic in the given language.
+	/// Generate a new [Mnemonic] in the given language.
 	/// For the different supported word counts, see documentation on [Mnemonoc].
 	#[cfg(feature = "rand")]
 	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
@@ -169,7 +169,7 @@ impl Mnemonic {
 		Mnemonic::from_entropy_in(language, &entropy)
 	}
 
-	/// Generate a new Mnemonic in English.
+	/// Generate a new [Mnemonic] in English.
 	/// For the different supported word counts, see documentation on [Mnemonoc].
 	#[cfg(feature = "rand")]
 	pub fn generate(word_count: usize) -> Result<Mnemonic, Error> {
