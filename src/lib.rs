@@ -42,10 +42,6 @@ mod pbkdf2;
 
 pub use language::Language;
 
-/// The ideagrapic space that should be used for Japanese lists.
-#[cfg(feature = "japanese")]
-#[allow(unused)]
-const IDEOGRAPHIC_SPACE: char = '　';
 
 /// A BIP39 error.
 #[derive(Clone, PartialEq, Eq)]
