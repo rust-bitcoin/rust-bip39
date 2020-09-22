@@ -42,6 +42,8 @@ mod pbkdf2;
 
 pub use language::Language;
 
+/// The maximum number of words in a mnemonic.
+const MAX_NB_WORDS: usize = 24;
 
 /// A BIP39 error.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -156,7 +158,7 @@ impl Mnemonic {
 	/// For the different supported word counts, see documentation on [Mnemonoc].
 	#[cfg(feature = "rand")]
 	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
-		if word_count < 6 || word_count % 6 != 0 || word_count > 24 {
+		if word_count < 6 || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(word_count));
 		}
 
@@ -177,7 +179,7 @@ impl Mnemonic {
 	/// Static method to validate a mnemonic in a given language.
 	pub fn validate_in(language: Language, s: &str) -> Result<(), Error> {
 		let words: Vec<&str> = s.split_whitespace().collect();
-		if words.len() < 6 || words.len() % 6 != 0 || words.len() > 24 {
+		if words.len() < 6 || words.len() % 6 != 0 || words.len() > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(words.len()));
 		}
 
