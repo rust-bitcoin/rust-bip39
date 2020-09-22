@@ -4,10 +4,13 @@ cache: cargo
 matrix:
   include:
     - rust: stable
+      env: BENCHES=false
     - rust: beta
+      env: BENCHES=false
     - rust: nightly
       env: BENCHES=true
     - rust: 1.22.0
+      env: BENCHES=false
 
 before_install:
   - sudo apt-get -qq update
