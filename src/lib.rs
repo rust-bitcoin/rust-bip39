@@ -260,19 +260,19 @@ impl Mnemonic {
 		Err(Error::AmbiguousWordList(langs))
 	}
 
+	/// Parse a mnemonic in the given language.
+	pub fn parse_in<'a, S: Into<Cow<'a, str>>>(language: Language, s: S) -> Result<Mnemonic, Error> {
+		let mut cow = s.into();
+		Mnemonic::normalize_utf8_cow(&mut cow);
+		Mnemonic::validate_in(language, cow.as_ref())?;
+		Ok(Mnemonic(cow.into_owned()))
+	}
+
 	/// Parse a mnemonic and detect the language from the enabled languages.
 	pub fn parse<'a, S: Into<Cow<'a, str>>>(s: S) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
 		let language = Mnemonic::language_of(cow.as_ref())?;
-		Mnemonic::validate_in(language, cow.as_ref())?;
-		Ok(Mnemonic(cow.into_owned()))
-	}
-
-	/// Parse a mnemonic in the given language.
-	pub fn parse_in<'a, S: Into<Cow<'a, str>>>(language: Language, s: S) -> Result<Mnemonic, Error> {
-		let mut cow = s.into();
-		Mnemonic::normalize_utf8_cow(&mut cow);
 		Mnemonic::validate_in(language, cow.as_ref())?;
 		Ok(Mnemonic(cow.into_owned()))
 	}
