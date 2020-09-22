@@ -306,7 +306,7 @@ impl Mnemonic {
 	}
 
 	/// Convert to seed bytes.
-	pub fn to_seed(&self, passphrase: &str) -> Vec<u8> {
+	pub fn to_seed(&self, passphrase: &str) -> [u8; 64] {
 		const PBKDF2_ROUNDS: usize = 2048;
 		const PBKDF2_BYTES: usize = 64;
 
@@ -320,7 +320,7 @@ impl Mnemonic {
 			Mnemonic::normalize_utf8_cow(&mut cow);
 			cow
 		};
-		let mut seed = vec![0u8; PBKDF2_BYTES];
+		let mut seed = [0u8; PBKDF2_BYTES];
 		pbkdf2::pbkdf2(
 			&normalized_mnemonic_cow.as_ref().as_bytes(),
 			&normalized_salt_cow.as_ref().as_bytes(),
@@ -546,7 +546,7 @@ mod tests {
 				"failed vector: {}", mnemonic_str);
 			assert_eq!(&entropy, &mnemonic.to_entropy(),
 				"failed vector: {}", mnemonic_str);
-			assert_eq!(&seed, &mnemonic.to_seed("TREZOR"),
+			assert_eq!(&seed[..], &mnemonic.to_seed("TREZOR")[..],
 				"failed vector: {}", mnemonic_str);
 		}
 	}
