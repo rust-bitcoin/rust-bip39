@@ -122,9 +122,10 @@ impl Mnemonic {
 		if (entropy.len() * 8) < 128 || (entropy.len() * 8) > 256 {
 			return Err(Error::BadEntropyBitCount(entropy.len() * 8));
 		}
+		const MAX_ENTROPY_LEN: usize = 32;
 
 		let check = sha256::Hash::hash(&entropy);
-		let mut bits = vec![false; entropy.len() * 8 + entropy.len() / 4];
+		let mut bits = [false; MAX_ENTROPY_LEN * 8 + MAX_ENTROPY_LEN / 4];
 		for i in 0..entropy.len() {
 			for j in 0..8 {
 				bits[i * 8 + j] = (entropy[i] & (1 << (7 - j))) > 0;
@@ -133,19 +134,20 @@ impl Mnemonic {
 		for i in 0..entropy.len() / 4 {
 			bits[8 * entropy.len() + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
 		}
-		let mlen = entropy.len() * 3 / 4;
-		let mut words = Vec::new();
-		for i in 0..mlen {
+
+		let mut words: [&'static str; MAX_NB_WORDS] = Default::default();
+		let nb_words = entropy.len() * 3 / 4;
+		for i in 0..nb_words {
 			let mut idx = 0;
 			for j in 0..11 {
 				if bits[i * 11 + j] {
 					idx += 1 << (10 - j);
 				}
 			}
-			words.push(language.word_list()[idx]);
+			words[i] = language.word_list()[idx];
 		}
 
-		Ok(Mnemonic(words.join(" ")))
+		Ok(Mnemonic(words[0..nb_words].join(" ")))
 	}
 
 	/// Create a new English [Mnemonic] from the given entropy.
@@ -164,8 +166,8 @@ impl Mnemonic {
 
 		let entropy_bytes = (word_count / 3) * 4;
 		let mut rng = rand::thread_rng();
-		let mut entropy = vec![0u8; entropy_bytes];
-		rand::RngCore::fill_bytes(&mut rng, &mut entropy);
+		let mut entropy = [0u8; (MAX_NB_WORDS / 3) * 4];
+		rand::RngCore::fill_bytes(&mut rng, &mut entropy[0..entropy_bytes]);
 		Mnemonic::from_entropy_in(language, &entropy)
 	}
 
@@ -178,13 +180,14 @@ impl Mnemonic {
 
 	/// Static method to validate a mnemonic in a given language.
 	pub fn validate_in(language: Language, s: &str) -> Result<(), Error> {
-		let words: Vec<&str> = s.split_whitespace().collect();
-		if words.len() < 6 || words.len() % 6 != 0 || words.len() > MAX_NB_WORDS {
-			return Err(Error::BadWordCount(words.len()));
+		let nb_words = s.split_whitespace().count();
+		if nb_words < 6 || nb_words % 6 != 0 || nb_words > MAX_NB_WORDS {
+			return Err(Error::BadWordCount(nb_words));
 		}
 
-		let mut bits = vec![false; words.len() * 11];
-		for (i, word) in words.iter().enumerate() {
+		// We only use `nb_words * 11` elements in this array.
+		let mut bits = [false; MAX_NB_WORDS * 11];
+		for (i, word) in s.split_whitespace().enumerate() {
 			if let Some(idx) = language.find_word(word) {
 				for j in 0..11 {
 					bits[i * 11 + j] = idx >> (10 - j) & 1 == 1;
@@ -195,17 +198,19 @@ impl Mnemonic {
 		}
 
 		// Verify the checksum.
-		let mut entropy = vec![0u8; bits.len() / 33 * 4];
-		for i in 0..entropy.len() {
+		// We only use `nb_words / 3 * 4` elements in this array.
+		let mut entropy = [0u8; MAX_NB_WORDS / 3 * 4];
+		let nb_bytes_entropy = nb_words / 3 * 4;
+		for i in 0..nb_bytes_entropy {
 			for j in 0..8 {
 				if bits[i * 8 + j] {
 					entropy[i] += 1 << (7 - j);
 				}
 			}
 		}
-		let check = sha256::Hash::hash(&entropy);
-		for i in 0..entropy.len() / 4 {
-			if bits[8 * entropy.len() + i] != ((check[i / 8] & (1 << (7 - (i % 8)))) > 0) {
+		let check = sha256::Hash::hash(&entropy[0..nb_bytes_entropy]);
+		for i in 0..nb_bytes_entropy / 4 {
+			if bits[8 * nb_bytes_entropy + i] != ((check[i / 8] & (1 << (7 - (i % 8)))) > 0) {
 				return Err(Error::InvalidChecksum);
 			}
 		}
@@ -319,8 +324,8 @@ impl Mnemonic {
 		let mut offset = 0;
 		let mut remainder = 0;
 
-		let words: Vec<&str> = self.as_str().split_whitespace().collect();
-		for word in &words {
+		let nb_words = self.as_str().split_whitespace().count();
+		for word in self.as_str().split_whitespace() {
 			let idx = language.find_word(word).unwrap();
 
 			remainder |= ((idx as u32) << (32 - 11)) >> offset;
@@ -338,7 +343,7 @@ impl Mnemonic {
 		}
 
 		// Truncate to get rid of the byte containing the checksum
-		let entropy_bytes = (words.len() / 3) * 4;
+		let entropy_bytes = (nb_words / 3) * 4;
 		entropy.truncate(entropy_bytes);
 		entropy
 	}
