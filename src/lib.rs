@@ -228,11 +228,23 @@ impl Mnemonic {
 	/// interpreted in multiple languages, an [Error::AmbiguousWordList] is
 	/// returned, containing the possible languages.
 	pub fn language_of(s: &str) -> Result<Language, Error> {
-		// First we try wordlists that have guaranteed unique words.
 		let first_word = s.split_whitespace().next().unwrap();
 		if first_word.len() == 0 {
 			return Err(Error::BadWordCount(0));
 		}
+
+		// For efficiency reasons, we add a special case for when there's
+		// only a single language enabled.
+		if Language::all().len() == 1 {
+			let lang = Language::all()[0];
+			return if lang.find_word(first_word).is_some() {
+				Ok(lang)
+			} else {
+				Err(Error::UnknownWord(first_word.to_owned()))
+			};
+		}
+
+		// Otherwise we first try wordlists that have guaranteed unique words.
 		for language in Language::all().iter().filter(|l| l.unique_words()) {
 			if language.find_word(first_word).is_some() {
 				return Ok(*language);
@@ -272,7 +284,13 @@ impl Mnemonic {
 	pub fn parse<'a, S: Into<Cow<'a, str>>>(s: S) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
-		let language = Mnemonic::language_of(cow.as_ref())?;
+
+		let language = if Language::all().len() == 1 {
+			Language::all()[0]
+		} else {
+			Mnemonic::language_of(cow.as_ref())?
+		};
+
 		Mnemonic::validate_in(language, cow.as_ref())?;
 		Ok(Mnemonic(cow.into_owned()))
 	}
