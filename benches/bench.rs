@@ -35,10 +35,10 @@ fn validate(b: &mut Bencher) {
     let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
     let mnemonic = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
 	assert_eq!(mnemonic.word_count(), 24);
-	let phrase = mnemonic.as_str();
+	let phrase = mnemonic.to_string();
 
     b.iter(|| {
-        let _ = Mnemonic::validate_in(Language::English, &phrase);
+        let _ = Mnemonic::parse_in(Language::English, &phrase);
     });
 }
 

@@ -1,4 +1,5 @@
 
+#[cfg(feature = "std")]
 use std::fmt;
 
 mod english;
@@ -18,6 +19,9 @@ mod japanese;
 mod korean;
 #[cfg(feature = "spanish")]
 mod spanish;
+
+/// The maximum number of languages enabled.
+pub(crate) const MAX_NB_LANGUAGES: usize = 9;
 
 /// Language to be used for the mnemonic phrase.
 ///
@@ -149,6 +153,7 @@ impl Language {
 	}
 }
 
+#[cfg(feature = "std")]
 impl fmt::Display for Language {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		fmt::Debug::fmt(self, f)
@@ -179,8 +184,7 @@ mod tests {
 		//! 9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60  korean.txt
 		//! 46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b  spanish.txt
 
-		use std::io::Write;
-		use bitcoin_hashes::{sha256, Hash};
+		use bitcoin_hashes::{sha256, Hash, HashEngine};
 
 		let checksums = [
 			("5c5942792bd8340cb8b27cd592f1015edf56a8c5b26276ee18a482428e7c5726", Language::SimplifiedChinese),
@@ -193,14 +197,18 @@ mod tests {
 			("9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60", Language::Korean),
 			("46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b", Language::Spanish),
 		];
+		assert_eq!(MAX_NB_LANGUAGES, checksums.len());
 
-		for &(sum, lang) in &checksums {
+		for &(_sum, lang) in &checksums {
 			let mut digest = sha256::Hash::engine();
 			for (_idx, word) in lang.word_list().iter().enumerate() {
+				#[cfg(feature = "std")]
 				assert!(::unicode_normalization::is_nfkd(&word));
-				write!(&mut digest, "{}\n", word).unwrap();
+				digest.input(word.as_bytes());
+				digest.input("\n".as_bytes());
 			}
-			assert_eq!(&sha256::Hash::from_engine(digest).to_string(), sum,
+			#[cfg(feature = "std")]
+			assert_eq!(sha256::Hash::from_engine(digest).to_string(), _sum,
 				"word list for language {} failed checksum check", lang,
 			);
 		}

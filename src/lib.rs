@@ -26,7 +26,11 @@
 #![deny(unused_imports)]
 #![deny(missing_docs)]
 
+#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+#[cfg(any(test, feature = "std"))] pub extern crate core;
+
 extern crate bitcoin_hashes;
+#[cfg(feature = "std")]
 extern crate unicode_normalization;
 
 #[cfg(feature = "rand")]
@@ -34,10 +38,14 @@ extern crate rand;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
+#[cfg(feature = "std")]
 use std::{error, fmt, str};
+#[cfg(feature = "std")]
 use std::borrow::Cow;
 
 use bitcoin_hashes::{sha256, Hash};
+
+#[cfg(feature = "std")]
 use unicode_normalization::UnicodeNormalization;
 
 #[macro_use]
@@ -51,46 +59,59 @@ pub use language::Language;
 const MAX_NB_WORDS: usize = 24;
 
 /// A BIP39 error.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Error {
 	/// Mnemonic has a word count that is not a multiple of 6.
 	BadWordCount(usize),
 	/// Mnemonic contains an unknown word.
-	UnknownWord(String),
+	UnknownWord, //TODO(stevenroose) add back word info
 	/// Entropy was not a multiple of 32 bits or between 128-256n bits in length.
 	BadEntropyBitCount(usize),
 	/// The mnemonic has an invalid checksum.
 	InvalidChecksum,
 	/// The word list can be interpreted as multiple languages.
-	AmbiguousWordList(Vec<Language>),
+	/// The booleans inside correspond to the occurrences in [Language::all()].
+	/// Use the method [Error::ambiguous_word_list] to get a vector of the
+	/// possible languages.
+	AmbiguousWordList([bool; language::MAX_NB_LANGUAGES]),
 }
 
+#[cfg(feature = "std")]
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
 			Error::BadWordCount(c) => write!(f,
 				"mnemonic has a word count that is not a multiple of 6: {}", c,
 			),
-			Error::UnknownWord(ref w) => write!(f,
-				"mnemonic contains an unknown word: {} ({})",
-				w, bitcoin_hashes::hex::ToHex::to_hex(w.as_bytes()),
+			Error::UnknownWord => write!(f,
+				"mnemonic contains an unknown word",
 			),
 			Error::BadEntropyBitCount(c) => write!(f,
 				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
-			Error::AmbiguousWordList(ref langs) => write!(f, "ambiguous word list: {:?}", langs),
+			Error::AmbiguousWordList(_) => write!(f, "ambiguous word list: {:?}", self.ambiguous_word_list()),
 		}
 	}
 }
 
-impl error::Error for Error {
-	fn cause(&self) -> Option<&error::Error> {
-		None
-	}
+#[cfg(feature = "std")]
+impl error::Error for Error {}
 
-	fn description(&self) -> &str {
-		"description() is deprecated; use Display"
+impl Error {
+	/// A helper method to get the set of languages present in an
+	/// [Error::AmbiguousWordList] error.
+	#[cfg(feature = "std")]
+	pub fn ambiguous_word_list(&self) -> Option<Vec<Language>> {
+		match self {
+			Error::AmbiguousWordList(bools) => Some(Language::all().iter()
+				.zip(bools.iter())
+				.filter(|(_lang, present)| **present)
+				.map(|(lang, _p)| *lang)
+				.collect()
+			),
+			_ => None,
+		}
 	}
 }
 
@@ -102,8 +123,7 @@ impl error::Error for Error {
 ///
 /// Supported number of words are 12, 18 and 24.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Mnemonic(String);
-// The content of the mnemonic is ensured to be NFKD-normalized UTF-8.
+pub struct Mnemonic([&'static str; MAX_NB_WORDS]);
 
 serde_string_impl!(Mnemonic, "a BIP-39 Mnemonic Code");
 
@@ -112,6 +132,7 @@ impl Mnemonic {
 	/// Performing this on a [Cow] means that all allocations for normalization
 	/// can be avoided for languages without special UTF8 characters.
 	#[inline]
+	#[cfg(feature = "std")]
 	fn normalize_utf8_cow<'a>(cow: &mut Cow<'a, str>) {
 		let is_nfkd = unicode_normalization::is_nfkd_quick(cow.as_ref().chars());
 		if is_nfkd != unicode_normalization::IsNormalized::Yes {
@@ -154,7 +175,7 @@ impl Mnemonic {
 			words[i] = language.word_list()[idx];
 		}
 
-		Ok(Mnemonic(words[0..nb_words].join(" ")))
+		Ok(Mnemonic(words))
 	}
 
 	/// Create a new English [Mnemonic] from the given entropy.
@@ -175,7 +196,7 @@ impl Mnemonic {
 		let mut rng = rand::thread_rng();
 		let mut entropy = [0u8; (MAX_NB_WORDS / 3) * 4];
 		rand::RngCore::fill_bytes(&mut rng, &mut entropy[0..entropy_bytes]);
-		Mnemonic::from_entropy_in(language, &entropy)
+		Mnemonic::from_entropy_in(language, &entropy[0..entropy_bytes])
 	}
 
 	/// Generate a new [Mnemonic] in English.
@@ -185,22 +206,102 @@ impl Mnemonic {
 		Mnemonic::generate_in(Language::English, word_count)
 	}
 
-	/// Static method to validate a mnemonic in a given language.
-	pub fn validate_in(language: Language, s: &str) -> Result<(), Error> {
+	/// Get an iterator over the words.
+	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + '_ {
+		self.0.iter().take_while(|w| !w.is_empty()).map(|w| *w)
+	}
+
+	/// Determine the language of the mnemonic.
+	///
+	/// NOTE: This method only guarantees that the returned language is the
+	/// correct language on the assumption that the mnemonic is valid.
+	/// It does not itself validate the mnemonic.
+	///
+	/// Some word lists don't guarantee that their words don't occur in other
+	/// word lists. In the extremely unlikely case that a word list can be
+	/// interpreted in multiple languages, an [Error::AmbiguousWordList] is
+	/// returned, containing the possible languages.
+	fn language_of<'a, W: Iterator<Item = &'a str>>(words: W) -> Result<Language, Error> {
+		let mut words = words.peekable();
+		let langs = Language::all();
+		{ // Start scope to drop first_word so that words can be reborrowed later.
+			let first_word = words.peek().ok_or(Error::BadWordCount(0))?;
+			if first_word.len() == 0 {
+				return Err(Error::BadWordCount(0));
+			}
+
+			// For efficiency reasons, we add a special case for when there's
+			// only a single language enabled.
+			if langs.len() == 1 {
+				let lang = langs[0];
+				return if lang.find_word(first_word).is_some() {
+					Ok(lang)
+				} else {
+					Err(Error::UnknownWord)//TODO(stevenroose) (first_word.to_owned()))
+				};
+			}
+
+			// Otherwise we first try wordlists that have guaranteed unique words.
+			for language in langs.iter().filter(|l| l.unique_words()) {
+				if language.find_word(first_word).is_some() {
+					return Ok(*language);
+				}
+			}
+		}
+
+		// If that didn't work, we start with all possible languages
+		// (those without unique words), and eliminate until there is
+		// just one left.
+		let mut possible = [false; language::MAX_NB_LANGUAGES];
+		for (i, lang) in langs.iter().enumerate() {
+			// To start, only consider lists that don't have unique words.
+			// Those were considered above.
+			possible[i] = !lang.unique_words();
+		}
+		for word in words {
+			// Scrap languages that don't have this word.
+			for (i, lang) in langs.iter().enumerate() {
+				if possible[i] {
+					possible[i] = lang.find_word(word).is_some();
+				}
+			}
+
+			// If there is just one language left, return it.
+			let nb_possible = possible.iter().filter(|p| **p).count();
+			if nb_possible == 1 {
+				return Ok(*possible.iter().zip(langs.iter()).find(|&(p, _)| *p).map(|(_, l)| l).unwrap());
+			}
+
+			// If all languages were eliminated, it's an invalid word.
+			if nb_possible == 0 {
+				return Err(Error::UnknownWord);//TODO(stevenroose) (word.to_owned()))
+			}
+		}
+
+		return Err(Error::AmbiguousWordList(possible));
+	}
+
+	/// Parse a mnemonic in normalized UTF8 in the given language.
+	pub fn parse_in_normalized(language: Language, s: &str) -> Result<Mnemonic, Error> {
 		let nb_words = s.split_whitespace().count();
 		if nb_words < 6 || nb_words % 6 != 0 || nb_words > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(nb_words));
 		}
 
+		// Here we will store the eventual words.
+		let mut words: [&'static str; MAX_NB_WORDS] = Default::default();
+
+		// And here we keep track of the bits to calculate and validate the checksum.
 		// We only use `nb_words * 11` elements in this array.
 		let mut bits = [false; MAX_NB_WORDS * 11];
+
 		for (i, word) in s.split_whitespace().enumerate() {
-			if let Some(idx) = language.find_word(word) {
-				for j in 0..11 {
-					bits[i * 11 + j] = idx >> (10 - j) & 1 == 1;
-				}
-			} else {
-				return Err(Error::UnknownWord(word.to_string()));
+			let idx = language.find_word(word).ok_or(Error::UnknownWord)?;
+
+			words[i] = language.word_list()[idx];
+
+			for j in 0..11 {
+				bits[i * 11 + j] = idx >> (10 - j) & 1 == 1;
 			}
 		}
 
@@ -221,73 +322,26 @@ impl Mnemonic {
 				return Err(Error::InvalidChecksum);
 			}
 		}
-		Ok(())
+
+		Ok(Mnemonic(words))
 	}
 
-	/// Determine the language of the mnemonic.
-	///
-	/// NOTE: This method only guarantees that the returned language is the
-	/// correct language on the assumption that the mnemonic is valid.
-	/// It does not itself validate the mnemonic.
-	///
-	/// Some word lists don't guarantee that their words don't occur in other
-	/// word lists. In the extremely unlikely case that a word list can be
-	/// interpreted in multiple languages, an [Error::AmbiguousWordList] is
-	/// returned, containing the possible languages.
-	pub fn language_of(s: &str) -> Result<Language, Error> {
-		let first_word = s.split_whitespace().next().unwrap();
-		if first_word.len() == 0 {
-			return Err(Error::BadWordCount(0));
-		}
-
-		// For efficiency reasons, we add a special case for when there's
-		// only a single language enabled.
-		if Language::all().len() == 1 {
-			let lang = Language::all()[0];
-			return if lang.find_word(first_word).is_some() {
-				Ok(lang)
-			} else {
-				Err(Error::UnknownWord(first_word.to_owned()))
-			};
-		}
-
-		// Otherwise we first try wordlists that have guaranteed unique words.
-		for language in Language::all().iter().filter(|l| l.unique_words()) {
-			if language.find_word(first_word).is_some() {
-				return Ok(*language);
-			}
-		}
-
-		// If that didn't work, we start with all possible languages
-		// (those without unique words), and eliminate until there is
-		// just one left.
-		let mut langs: Vec<_> =
-			Language::all().iter().filter(|l| !l.unique_words()).cloned().collect();
-		for word in s.split_whitespace() {
-			langs.retain(|l| l.find_word(word).is_some());
-
-			// If there is just one language left, return it.
-			if langs.len() == 1 {
-				return Ok(langs[0]);
-			}
-
-			// If all languages were eliminated, it's an invalid word.
-			if langs.is_empty() {
-				return Err(Error::UnknownWord(word.to_owned()))
-			}
-		}
-		Err(Error::AmbiguousWordList(langs))
+	/// Parse a mnemonic in normalized UTF8.
+	pub fn parse_normalized(s: &str) -> Result<Mnemonic, Error> {
+		let lang = Mnemonic::language_of(s.split_whitespace())?;
+		Mnemonic::parse_in_normalized(lang, s)
 	}
 
 	/// Parse a mnemonic in the given language.
+	#[cfg(feature = "std")]
 	pub fn parse_in<'a, S: Into<Cow<'a, str>>>(language: Language, s: S) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
-		Mnemonic::validate_in(language, cow.as_ref())?;
-		Ok(Mnemonic(cow.into_owned()))
+		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
 	}
 
 	/// Parse a mnemonic and detect the language from the enabled languages.
+	#[cfg(feature = "std")]
 	pub fn parse<'a, S: Into<Cow<'a, str>>>(s: S) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
@@ -295,63 +349,54 @@ impl Mnemonic {
 		let language = if Language::all().len() == 1 {
 			Language::all()[0]
 		} else {
-			Mnemonic::language_of(cow.as_ref())?
+			Mnemonic::language_of(cow.as_ref().split_whitespace())?
 		};
 
-		Mnemonic::validate_in(language, cow.as_ref())?;
-		Ok(Mnemonic(cow.into_owned()))
-	}
-
-	/// Get the mnemonic as a [&str].
-	pub fn as_str(&self) -> &str {
-		&self.0
+		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
 	}
 
 	/// Get the number of words in the mnemonic.
 	pub fn word_count(&self) -> usize {
-		self.as_str().split_whitespace().count()
+		self.0.iter().take_while(|w| !w.is_empty()).count()
 	}
 
-	/// Convert to seed bytes.
-	pub fn to_seed(&self, passphrase: &str) -> [u8; 64] {
+	/// Convert to seed bytes with a passphrase in normalized UTF8.
+	pub fn to_seed_normalized(&self, normalized_passphrase: &str) -> [u8; 64] {
 		const PBKDF2_ROUNDS: usize = 2048;
 		const PBKDF2_BYTES: usize = 64;
 
-		let normalized_salt_cow = {
-			let mut cow = Cow::Owned(format!("mnemonic{}", passphrase));
-			Mnemonic::normalize_utf8_cow(&mut cow);
-			cow
-		};
-		let normalized_mnemonic_cow = {
-			let mut cow: Cow<str> = Cow::Borrowed(self.as_str());
-			Mnemonic::normalize_utf8_cow(&mut cow);
-			cow
-		};
 		let mut seed = [0u8; PBKDF2_BYTES];
-		pbkdf2::pbkdf2(
-			&normalized_mnemonic_cow.as_ref().as_bytes(),
-			&normalized_salt_cow.as_ref().as_bytes(),
-			PBKDF2_ROUNDS,
-			&mut seed,
-		);
+		pbkdf2::pbkdf2(&self.0, normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
 		seed
 	}
 
+	/// Convert to seed bytes.
+	#[cfg(feature = "std")]
+	pub fn to_seed<'a, P: Into<Cow<'a, str>>>(&self, passphrase: P) -> [u8; 64] {
+		let normalized_passphrase = {
+			let mut cow = passphrase.into();
+			Mnemonic::normalize_utf8_cow(&mut cow);
+			cow
+		};
+		self.to_seed_normalized(normalized_passphrase.as_ref())
+	}
+
 	/// Convert the mnemonic back to the entropy used to generate it.
+	#[cfg(feature = "std")]
 	pub fn to_entropy(&self) -> Vec<u8> {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
 
-		let language = Mnemonic::language_of(self.as_str()).unwrap();
+		let language = Mnemonic::language_of(self.word_iter()).unwrap();
 
 		// Preallocate enough space for the longest possible word list
 		let mut entropy = Vec::with_capacity(33);
 		let mut offset = 0;
 		let mut remainder = 0;
 
-		let nb_words = self.as_str().split_whitespace().count();
-		for word in self.as_str().split_whitespace() {
-			let idx = language.find_word(word).unwrap();
+		let nb_words = self.word_count();
+		for word in self.word_iter() {
+			let idx = language.find_word(word).expect("invalid mnemonic");
 
 			remainder |= ((idx as u32) << (32 - 11)) >> offset;
 			offset += 11;
@@ -374,12 +419,24 @@ impl Mnemonic {
 	}
 }
 
+#[cfg(feature = "std")]
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		f.write_str(self.as_str())
+		for i in 0..self.0.len() {
+			let word = &self.0[i];
+			if word.is_empty() {
+				break;
+			}
+			if i > 0 {
+				f.write_str(" ")?;
+			}
+			f.write_str(word)?;
+		}
+		Ok(())
 	}
 }
 
+#[cfg(feature = "std")]
 impl str::FromStr for Mnemonic {
 	type Err = Error;
 
@@ -397,9 +454,12 @@ mod tests {
 	#[cfg(feature = "rand")]
 	#[test]
 	fn test_bit_counts() {
-		let _ = Mnemonic::generate(12).unwrap();
-		let _ = Mnemonic::generate(18).unwrap();
-		let _ = Mnemonic::generate(24).unwrap();
+		let m = Mnemonic::generate(12).unwrap();
+		assert_eq!(m.word_count(), 12);
+		let m = Mnemonic::generate(18).unwrap();
+		assert_eq!(m.word_count(), 18);
+		let m = Mnemonic::generate(24).unwrap();
+		assert_eq!(m.word_count(), 24);
 	}
 
 	#[cfg(feature = "rand")]
@@ -407,8 +467,26 @@ mod tests {
 	fn test_language_of() {
 		for lang in Language::all() {
 			let m = Mnemonic::generate_in(*lang, 24).unwrap();
-			assert_eq!(*lang, Mnemonic::language_of(m.as_str()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of(m.word_iter()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of(m.to_string().split_whitespace()).unwrap());
 		}
+	}
+
+	#[cfg(feature = "std")]
+	#[test]
+	fn test_ambiguous_word_list() {
+		let mut present = [false; language::MAX_NB_LANGUAGES];
+		let mut present_vec = Vec::new();
+		let mut alternate = true;
+		for i in 0..Language::all().len() {
+			present[i] = alternate;
+			if alternate {
+				present_vec.push(Language::all()[i]);
+			}
+			alternate = !alternate;
+		}
+		let err = Error::AmbiguousWordList(present);
+		assert_eq!(err.ambiguous_word_list().unwrap(), present_vec);
 	}
 
 	#[test]
@@ -545,16 +623,26 @@ mod tests {
 			
 			let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
 
-			assert_eq!(&mnemonic.to_string(), mnemonic_str,
+			assert_eq!(mnemonic, Mnemonic::parse_in_normalized(Language::English, mnemonic_str).unwrap(),
 				"failed vector: {}", mnemonic_str);
-			assert_eq!(mnemonic, Mnemonic::parse_in(Language::English, mnemonic_str).unwrap(),
+			assert_eq!(mnemonic, Mnemonic::parse_normalized(mnemonic_str).unwrap(),
 				"failed vector: {}", mnemonic_str);
-			assert_eq!(mnemonic, Mnemonic::parse(mnemonic_str).unwrap(),
+			assert_eq!(&seed[..], &mnemonic.to_seed_normalized("TREZOR")[..],
 				"failed vector: {}", mnemonic_str);
-			assert_eq!(&entropy, &mnemonic.to_entropy(),
-				"failed vector: {}", mnemonic_str);
-			assert_eq!(&seed[..], &mnemonic.to_seed("TREZOR")[..],
-				"failed vector: {}", mnemonic_str);
+
+			#[cfg(features = "std")]
+			{
+				assert_eq!(&mnemonic.to_string(), mnemonic_str,
+					"failed vector: {}", mnemonic_str);
+				assert_eq!(mnemonic, Mnemonic::parse_in(Language::English, mnemonic_str).unwrap(),
+					"failed vector: {}", mnemonic_str);
+				assert_eq!(mnemonic, Mnemonic::parse(mnemonic_str).unwrap(),
+					"failed vector: {}", mnemonic_str);
+				assert_eq!(&seed[..], &mnemonic.to_seed("TREZOR")[..],
+					"failed vector: {}", mnemonic_str);
+				assert_eq!(&entropy, &mnemonic.to_entropy(),
+					"failed vector: {}", mnemonic_str);
+			}
 		}
 	}
 
@@ -564,21 +652,21 @@ mod tests {
 		// "letter advice cage absurd amount doctor acoustic avoid letter advice cage above"
 
 		assert_eq!(
-			Mnemonic::parse(
+			Mnemonic::parse_normalized(
 				"getter advice cage absurd amount doctor acoustic avoid letter advice cage above",
 			),
-			Err(Error::UnknownWord("getter".to_owned()))
+			Err(Error::UnknownWord)//("getter".to_owned()))
 		);
 
 		assert_eq!(
-			Mnemonic::parse(
+			Mnemonic::parse_normalized(
 				"advice cage absurd amount doctor acoustic avoid letter advice cage above",
 			),
 			Err(Error::BadWordCount(11))
 		);
 
 		assert_eq!(
-			Mnemonic::parse(
+			Mnemonic::parse_normalized(
 				"primary advice cage absurd amount doctor acoustic avoid letter advice cage above",
 			),
 			Err(Error::InvalidChecksum)
@@ -606,7 +694,7 @@ mod tests {
 		);
 	}
 
-	#[cfg(feature = "japanese")]
+	#[cfg(all(feature = "japanese", feature = "std"))]
 	#[test]
 	fn test_vectors_japanese() {
 		//! Test some Japanese language test vectors.
@@ -770,10 +858,10 @@ mod tests {
 			let seed = Vec::<u8>::from_hex(&vector.3).unwrap();
 			
 			let mnemonic = Mnemonic::from_entropy_in(Language::Japanese, &entropy).unwrap();
+
 			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..],
 				"failed vector: {}", mnemonic_str);
-
-			let rt = Mnemonic::parse_in(Language::Japanese, mnemonic.as_str())
+			let rt = Mnemonic::parse_in(Language::Japanese, mnemonic.to_string())
 				.expect(&format!("vector: {}", mnemonic_str));
 			assert_eq!(seed, &rt.to_seed(passphrase)[..]);
 
