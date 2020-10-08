@@ -28,8 +28,11 @@
 
 extern crate bitcoin_hashes;
 extern crate unicode_normalization;
+
 #[cfg(feature = "rand")]
 extern crate rand;
+#[cfg(feature = "serde")]
+pub extern crate serde;
 
 use std::{error, fmt, str};
 use std::borrow::Cow;
@@ -37,6 +40,8 @@ use std::borrow::Cow;
 use bitcoin_hashes::{sha256, Hash};
 use unicode_normalization::UnicodeNormalization;
 
+#[macro_use]
+mod internal_macros;
 mod language;
 mod pbkdf2;
 
@@ -99,6 +104,8 @@ impl error::Error for Error {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Mnemonic(String);
 // The content of the mnemonic is ensured to be NFKD-normalized UTF-8.
+
+serde_string_impl!(Mnemonic, "a BIP-39 Mnemonic Code");
 
 impl Mnemonic {
 	/// Ensure the content of the [Cow] is normalized UTF8.
