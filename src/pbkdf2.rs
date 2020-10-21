@@ -7,8 +7,8 @@ fn u32_to_array_be(val: u32) -> [u8; 4] {
 	debug_assert_eq!(::std::mem::size_of::<u32>(), 4); // size_of isn't a constfn in 1.22
 
 	let mut res = [0; 4];
-	for i in 0..4 {
-		res[i] = ((val >> (4 - i - 1)*8) & 0xff) as u8;
+	for (i, item) in res.iter_mut().enumerate() {
+		*item = ((val >> ((4 - i - 1)*8)) & 0xff) as u8;
 	}
 	res
 }

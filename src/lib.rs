@@ -26,11 +26,6 @@
 #![deny(unused_imports)]
 #![deny(missing_docs)]
 
-extern crate bitcoin_hashes;
-extern crate unicode_normalization;
-#[cfg(feature = "rand")]
-extern crate rand;
-
 use std::{error, fmt, str};
 use std::borrow::Cow;
 
@@ -40,7 +35,7 @@ use unicode_normalization::UnicodeNormalization;
 mod language;
 mod pbkdf2;
 
-pub use language::Language;
+pub use self::language::Language;
 
 /// The ideagrapic space that should be used for Japanese lists.
 #[cfg(feature = "japanese")]
@@ -48,7 +43,7 @@ pub use language::Language;
 const IDEOGRAPHIC_SPACE: char = '　';
 
 /// A BIP39 error.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
 	/// Mnemonic has a word count that is not a multiple of 6.
 	BadWordCount(usize),
@@ -80,21 +75,8 @@ impl fmt::Display for Error {
 		}
 	}
 }
-impl fmt::Debug for Error {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		fmt::Display::fmt(self, f)
-	}
-}
 
-impl error::Error for Error {
-	fn cause(&self) -> Option<&error::Error> {
-		None
-	}
-
-	fn description(&self) -> &str {
-		"description() is deprecated; use Display"
-	}
-}
+impl error::Error for Error {}
 
 /// A mnemonic code.
 ///
@@ -232,7 +214,7 @@ impl Mnemonic {
 	pub fn language_of(s: &str) -> Result<Language, Error> {
 		// First we try wordlists that have guaranteed unique words.
 		let first_word = s.split_whitespace().next().unwrap();
-		if first_word.len() == 0 {
+		if first_word.is_empty() {
 			return Err(Error::BadWordCount(0));
 		}
 		for language in Language::all().iter().filter(|l| l.unique_words()) {
@@ -566,19 +548,19 @@ mod tests {
 	fn test_invalid_entropy() {
 		//between 128 and 256 bits, but not divisible by 32
 		assert_eq!(
-			Mnemonic::from_entropy(&vec![b'x'; 17]),
+			Mnemonic::from_entropy(&[b'x'; 17]),
 			Err(Error::BadEntropyBitCount(136))
 		);
 
 		//less than 128 bits
 		assert_eq!(
-			Mnemonic::from_entropy(&vec![b'x'; 4]),
+			Mnemonic::from_entropy(&[b'x'; 4]),
 			Err(Error::BadEntropyBitCount(32))
 		);
 
 		//greater than 256 bits
 		assert_eq!(
-			Mnemonic::from_entropy(&vec![b'x'; 36]),
+			Mnemonic::from_entropy(&[b'x'; 36]),
 			Err(Error::BadEntropyBitCount(288))
 		);
 	}

@@ -7,7 +7,7 @@ matrix:
     - rust: beta
     - rust: nightly
       env: BENCHES=true
-    - rust: 1.22.0
+    - rust: 1.36.0
 
 before_install:
   - sudo apt-get -qq update
@@ -19,5 +19,5 @@ script:
   - cargo build --verbose --features rand,all-languages
   - cargo test --verbose --features rand,all-languages
   # benchmarks
-  - if ${BENCHES}; then cargo bench --verbose --features rand; fi
-  - if ${BENCHES}; then cargo bench --verbose --features rand,japanese; fi
+  - if [[ $TRAVIS_RUST_VERSION == "nightly" && ${BENCHES} ]]; then cargo bench --verbose --features rand; fi
+  - if [[ $TRAVIS_RUST_VERSION == "nightly" && ${BENCHES} ]]; then cargo bench --verbose --features rand,japanese; fi

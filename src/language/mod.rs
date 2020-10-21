@@ -198,7 +198,7 @@ mod tests {
 			let mut digest = sha256::Hash::engine();
 			for (_idx, word) in lang.word_list().iter().enumerate() {
 				assert!(::unicode_normalization::is_nfkd(&word));
-				write!(&mut digest, "{}\n", word).unwrap();
+				writeln!(&mut digest, "{}", word).unwrap();
 			}
 			assert_eq!(&sha256::Hash::from_engine(digest).to_string(), sum,
 				"word list for language {} failed checksum check", lang,
