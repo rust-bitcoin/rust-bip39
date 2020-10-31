@@ -87,7 +87,7 @@ impl fmt::Debug for Error {
 }
 
 impl error::Error for Error {
-	fn cause(&self) -> Option<&error::Error> {
+	fn cause(&self) -> Option<&dyn error::Error> {
 		None
 	}
 
@@ -162,7 +162,7 @@ impl Mnemonic {
 	}
 
 	/// Generate a new Mnemonic in the given language.
-	/// For the different supported word counts, see documentation on [Mnemonoc].
+	/// For the different supported word counts, see documentation on [Mnemonic].
 	#[cfg(feature = "rand")]
 	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
 		if word_count < 6 || word_count % 6 != 0 || word_count > 24 {
@@ -177,7 +177,7 @@ impl Mnemonic {
 	}
 
 	/// Generate a new Mnemonic in English.
-	/// For the different supported word counts, see documentation on [Mnemonoc].
+	/// For the different supported word counts, see documentation on [Mnemonic].
 	#[cfg(feature = "rand")]
 	pub fn generate(word_count: usize) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in(Language::English, word_count)
@@ -349,6 +349,26 @@ impl Mnemonic {
 		entropy.truncate(entropy_bytes);
 		entropy
 	}
+
+	/// Calculates the final word (based on the checksum) of a manually generated mnemonic.
+	/// There are multiple valid checksums, the first one (alphabetically) is picked.
+	pub fn finalize_mnemonic<'a, S: Into<Cow<'a, str>>>(s: S) -> Result<Mnemonic, Error> {
+		let mut cow = s.into();
+		Mnemonic::normalize_utf8_cow(&mut cow);
+		let language = Self::language_of(&cow)?;
+
+		for word in language.word_list() {
+			let mnemonic = format!("{} {}", cow, word);
+			match Self::validate_in(language, &mnemonic) {
+				Ok(()) => return Ok(Mnemonic(mnemonic)),
+				Err(e) => match e {
+					Error::InvalidChecksum => {},
+					_ => return Err(e)
+				}
+			}
+		}
+		Err(Error::InvalidChecksum)
+	}
 }
 
 impl fmt::Display for Mnemonic {
@@ -519,7 +539,7 @@ mod tests {
 			let entropy = Vec::<u8>::from_hex(&vector.0).unwrap();
 			let mnemonic_str = vector.1;
 			let seed = Vec::<u8>::from_hex(&vector.2).unwrap();
-			
+
 			let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
 
 			assert_eq!(&mnemonic.to_string(), mnemonic_str,
@@ -758,6 +778,28 @@ mod tests {
 				.expect(&format!("vector: {}", mnemonic_str));
 			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..],
 				"failed vector: {}", mnemonic_str);
+		}
+	}
+
+	#[test]
+	fn test_finalize_mnemonic() {
+		let vectors = [
+			(
+				"ozone drill grab fiber curtain grace pudding thank cruise elder eight",
+				"about"
+			),
+			(
+				"light rule cinnamon wrap drastic word pride squirrel upgrade then income fatal apart sustain crack supply proud",
+				"access"
+			),
+			(
+				"hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay",
+				"balance"
+			),
+		];
+
+		for vector in &vectors {
+			assert_eq!(format!("{} {}", vector.0, vector.1), Mnemonic::finalize_mnemonic(vector.0).unwrap().0);
 		}
 	}
 }
