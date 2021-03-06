@@ -1,5 +1,5 @@
 
-/// Implement serde serialization based on the 
+/// Implement serde serialization based on the
 /// fmt::Display and std::FromStr traits.
 macro_rules! serde_string_impl {
     ($name:ident, $expecting:expr) => {

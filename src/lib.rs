@@ -143,28 +143,33 @@ impl Mnemonic {
 	/// Create a new [Mnemonic] in the specified language from the given entropy.
 	/// Entropy must be a multiple of 32 bits (4 bytes) and 128-256 bits in length.
 	pub fn from_entropy_in(language: Language, entropy: &[u8]) -> Result<Mnemonic, Error> {
-		if entropy.len() % 4 != 0 {
-			return Err(Error::BadEntropyBitCount(entropy.len() * 8));
-		}
+		const MAX_ENTROPY_BITS: usize = 256;
+		const MIN_ENTROPY_BITS: usize = 128;
+		const MAX_CHECKSUM_BITS: usize = 8;
 
-		if (entropy.len() * 8) < 128 || (entropy.len() * 8) > 256 {
-			return Err(Error::BadEntropyBitCount(entropy.len() * 8));
+		let nb_bytes = entropy.len();
+		let nb_bits = nb_bytes * 8;
+
+		if nb_bits % 32 != 0 {
+			return Err(Error::BadEntropyBitCount(nb_bits));
 		}
-		const MAX_ENTROPY_LEN: usize = 32;
+		if nb_bits < MIN_ENTROPY_BITS || nb_bits > MAX_ENTROPY_BITS {
+			return Err(Error::BadEntropyBitCount(nb_bits));
+		}
 
 		let check = sha256::Hash::hash(&entropy);
-		let mut bits = [false; MAX_ENTROPY_LEN * 8 + MAX_ENTROPY_LEN / 4];
-		for i in 0..entropy.len() {
+		let mut bits = [false; MAX_ENTROPY_BITS + MAX_CHECKSUM_BITS];
+		for i in 0..nb_bytes {
 			for j in 0..8 {
 				bits[i * 8 + j] = (entropy[i] & (1 << (7 - j))) > 0;
 			}
 		}
-		for i in 0..entropy.len() / 4 {
-			bits[8 * entropy.len() + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
+		for i in 0..nb_bytes / 4 {
+			bits[8 * nb_bytes + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
 		}
 
 		let mut words: [&'static str; MAX_NB_WORDS] = Default::default();
-		let nb_words = entropy.len() * 3 / 4;
+		let nb_words = nb_bytes * 3 / 4;
 		for i in 0..nb_words {
 			let mut idx = 0;
 			for j in 0..11 {
