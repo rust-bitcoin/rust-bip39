@@ -93,7 +93,9 @@ pub enum Error {
 	/// Mnemonic has a word count that is not a multiple of 6.
 	BadWordCount(usize),
 	/// Mnemonic contains an unknown word.
-	UnknownWord, //TODO(stevenroose) add back word info
+	/// Error contains the index of the word.
+	/// Use `mnemonic.split_whitespace().get(i)` to get the word.
+	UnknownWord(usize),
 	/// Entropy was not a multiple of 32 bits or between 128-256n bits in length.
 	BadEntropyBitCount(usize),
 	/// The mnemonic has an invalid checksum.
@@ -111,8 +113,8 @@ impl fmt::Display for Error {
 			Error::BadWordCount(c) => write!(f,
 				"mnemonic has a word count that is not a multiple of 6: {}", c,
 			),
-			Error::UnknownWord => write!(f,
-				"mnemonic contains an unknown word",
+			Error::UnknownWord(i) => write!(f,
+				"mnemonic contains an unknown word (word {})", i,
 			),
 			Error::BadEntropyBitCount(c) => write!(f,
 				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
@@ -245,7 +247,7 @@ impl Mnemonic {
 				return if lang.find_word(first_word).is_some() {
 					Ok(lang)
 				} else {
-					Err(Error::UnknownWord)//TODO(stevenroose) (first_word.to_owned()))
+					Err(Error::UnknownWord(0))
 				};
 			}
 
@@ -266,7 +268,7 @@ impl Mnemonic {
 			// Those were considered above.
 			possible[i] = !lang.unique_words();
 		}
-		for word in words {
+		for (idx, word) in words.enumerate() {
 			// Scrap languages that don't have this word.
 			for (i, lang) in langs.iter().enumerate() {
 				if possible[i] {
@@ -282,7 +284,7 @@ impl Mnemonic {
 
 			// If all languages were eliminated, it's an invalid word.
 			if nb_possible == 0 {
-				return Err(Error::UnknownWord);//TODO(stevenroose) (word.to_owned()))
+				return Err(Error::UnknownWord(idx));
 			}
 		}
 
@@ -306,7 +308,7 @@ impl Mnemonic {
 	/// Parse a mnemonic in normalized UTF8 in the given language.
 	pub fn parse_in_normalized(language: Language, s: &str) -> Result<Mnemonic, Error> {
 		let nb_words = s.split_whitespace().count();
-		if nb_words < 6 || nb_words % 6 != 0 || nb_words > MAX_NB_WORDS {
+		if nb_words < MIN_NB_WORDS || nb_words % 6 != 0 || nb_words > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(nb_words));
 		}
 
@@ -318,7 +320,7 @@ impl Mnemonic {
 		let mut bits = [false; MAX_NB_WORDS * 11];
 
 		for (i, word) in s.split_whitespace().enumerate() {
-			let idx = language.find_word(word).ok_or(Error::UnknownWord)?;
+			let idx = language.find_word(word).ok_or(Error::UnknownWord(i))?;
 
 			words[i] = language.word_list()[idx];
 
@@ -680,7 +682,14 @@ mod tests {
 			Mnemonic::parse_normalized(
 				"getter advice cage absurd amount doctor acoustic avoid letter advice cage above",
 			),
-			Err(Error::UnknownWord)//("getter".to_owned()))
+			Err(Error::UnknownWord(0))
+		);
+
+		assert_eq!(
+			Mnemonic::parse_normalized(
+				"letter advice cagex absurd amount doctor acoustic avoid letter advice cage above",
+			),
+			Err(Error::UnknownWord(2))
 		);
 
 		assert_eq!(
