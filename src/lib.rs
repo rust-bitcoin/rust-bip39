@@ -406,15 +406,17 @@ impl Mnemonic {
 	}
 
 	/// Convert the mnemonic back to the entropy used to generate it.
-	#[cfg(feature = "std")]
-	pub fn to_entropy(&self) -> Vec<u8> {
+	/// The return value is a byte array and the size.
+	/// Use [Mnemonic::to_entropy] (needs `std`) to get a [Vec<u8>].
+	pub fn to_entropy_array(&self) -> ([u8; 33], usize) {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
 
 		let language = Mnemonic::language_of_iter(self.word_iter()).unwrap();
 
 		// Preallocate enough space for the longest possible word list
-		let mut entropy = Vec::with_capacity(33);
+		let mut entropy = [0; 33];
+		let mut cursor = 0;
 		let mut offset = 0;
 		let mut remainder = 0;
 
@@ -426,20 +428,26 @@ impl Mnemonic {
 			offset += 11;
 
 			while offset >= 8 {
-				entropy.push((remainder >> 24) as u8);
+				entropy[cursor] = (remainder >> 24) as u8;
+				cursor += 1;
 				remainder <<= 8;
 				offset -= 8;
 			}
 		}
 
 		if offset != 0 {
-			entropy.push((remainder >> 24) as u8);
+			entropy[cursor] = (remainder >> 24) as u8;
 		}
 
-		// Truncate to get rid of the byte containing the checksum
 		let entropy_bytes = (nb_words / 3) * 4;
-		entropy.truncate(entropy_bytes);
-		entropy
+		(entropy, entropy_bytes)
+	}
+
+	/// Convert the mnemonic back to the entropy used to generate it.
+	#[cfg(feature = "std")]
+	pub fn to_entropy(&self) -> Vec<u8> {
+		let (arr, len) = self.to_entropy_array();
+		arr[0..len].to_vec()
 	}
 }
 
@@ -668,6 +676,8 @@ mod tests {
 				assert_eq!(&seed[..], &mnemonic.to_seed("TREZOR")[..],
 					"failed vector: {}", mnemonic_str);
 				assert_eq!(&entropy, &mnemonic.to_entropy(),
+					"failed vector: {}", mnemonic_str);
+				assert_eq!(&entropy, &mnemonic.to_entropy_array().0[0..entropy.len()],
 					"failed vector: {}", mnemonic_str);
 			}
 		}
