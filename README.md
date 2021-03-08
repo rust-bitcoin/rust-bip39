@@ -28,5 +28,5 @@ Use the `all-languages` feature to enable all languages.
 
 ## MSRV
 
-This crate supports Rust v1.22 and up.
+This crate supports Rust v1.29 and up.
 

@@ -9,7 +9,7 @@ matrix:
       env: BENCHES=false
     - rust: nightly
       env: BENCHES=true
-    - rust: 1.22.0
+    - rust: 1.29.0
       env: BENCHES=false
 
 before_install:
@@ -19,6 +19,8 @@ before_install:
 script:
   - cargo build --verbose
   - cargo test --verbose
+  - cargo build --verbose --no-default-features
+  - cargo test --verbose --no-default-features
   - cargo build --verbose --features rand,all-languages
   - cargo test --verbose --features rand,all-languages
   # benchmarks
