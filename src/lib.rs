@@ -55,6 +55,10 @@ mod pbkdf2;
 
 pub use language::Language;
 
+/// The minimum number of words in a mnemonic.
+#[allow(unused)]
+const MIN_NB_WORDS: usize = 12;
+
 /// The maximum number of words in a mnemonic.
 const MAX_NB_WORDS: usize = 24;
 
@@ -200,7 +204,7 @@ impl Mnemonic {
 	/// For the different supported word counts, see documentation on [Mnemonic].
 	#[cfg(feature = "rand")]
 	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
-		if word_count < 6 || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
+		if word_count < MIN_NB_WORDS || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(word_count));
 		}
 
