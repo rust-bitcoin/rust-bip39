@@ -197,7 +197,7 @@ impl Mnemonic {
 	}
 
 	/// Generate a new [Mnemonic] in the given language.
-	/// For the different supported word counts, see documentation on [Mnemonoc].
+	/// For the different supported word counts, see documentation on [Mnemonic].
 	#[cfg(feature = "rand")]
 	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
 		if word_count < 6 || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
@@ -212,7 +212,7 @@ impl Mnemonic {
 	}
 
 	/// Generate a new [Mnemonic] in English.
-	/// For the different supported word counts, see documentation on [Mnemonoc].
+	/// For the different supported word counts, see documentation on [Mnemonic].
 	#[cfg(feature = "rand")]
 	pub fn generate(word_count: usize) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in(Language::English, word_count)
