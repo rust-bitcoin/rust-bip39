@@ -58,6 +58,31 @@ pub use language::Language;
 /// The maximum number of words in a mnemonic.
 const MAX_NB_WORDS: usize = 24;
 
+/// A structured used in the [Error::AmbiguousLanguages] variant that iterates
+/// over the possible languages.
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub struct AmbiguousLanguages([bool; language::MAX_NB_LANGUAGES]);
+
+impl AmbiguousLanguages {
+	/// Presents the possible languages in the form of a slice of booleans
+	/// that correspond to the occurrences in [Language::all()].
+	pub fn as_bools(&self) -> &[bool; language::MAX_NB_LANGUAGES] {
+		&self.0
+	}
+
+	/// An iterator over the possible languages.
+	#[cfg(feature = "std")]
+	pub fn iter(&self) -> impl Iterator<Item = Language> + '_ {
+		Language::all().iter().enumerate().filter(move |(i, _)| self.0[*i]).map(|(_, l)| *l)
+	}
+
+	/// Returns a vector of the possible languages.
+	#[cfg(feature = "std")]
+	pub fn to_vec(&self) -> Vec<Language> {
+		self.iter().collect()
+	}
+}
+
 /// A BIP39 error.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Error {
@@ -69,11 +94,10 @@ pub enum Error {
 	BadEntropyBitCount(usize),
 	/// The mnemonic has an invalid checksum.
 	InvalidChecksum,
-	/// The word list can be interpreted as multiple languages.
-	/// The booleans inside correspond to the occurrences in [Language::all()].
-	/// Use the method [Error::ambiguous_word_list] to get a vector of the
-	/// possible languages.
-	AmbiguousWordList([bool; language::MAX_NB_LANGUAGES]),
+	/// The mnemonic can be interpreted as multiple languages.
+	/// Use the helper methods of the inner struct to inspect
+	/// which languages are possible.
+	AmbiguousLanguages(AmbiguousLanguages),
 }
 
 #[cfg(feature = "std")]
@@ -90,30 +114,13 @@ impl fmt::Display for Error {
 				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
-			Error::AmbiguousWordList(_) => write!(f, "ambiguous word list: {:?}", self.ambiguous_word_list()),
+			Error::AmbiguousLanguages(a) => write!(f, "ambiguous word list: {:?}", a.to_vec()),
 		}
 	}
 }
 
 #[cfg(feature = "std")]
 impl error::Error for Error {}
-
-impl Error {
-	/// A helper method to get the set of languages present in an
-	/// [Error::AmbiguousWordList] error.
-	#[cfg(feature = "std")]
-	pub fn ambiguous_word_list(&self) -> Option<Vec<Language>> {
-		match self {
-			Error::AmbiguousWordList(bools) => Some(Language::all().iter()
-				.zip(bools.iter())
-				.filter(|(_lang, present)| **present)
-				.map(|(lang, _p)| *lang)
-				.collect()
-			),
-			_ => None,
-		}
-	}
-}
 
 /// A mnemonic code.
 ///
@@ -224,7 +231,7 @@ impl Mnemonic {
 	///
 	/// Some word lists don't guarantee that their words don't occur in other
 	/// word lists. In the extremely unlikely case that a word list can be
-	/// interpreted in multiple languages, an [Error::AmbiguousWordList] is
+	/// interpreted in multiple languages, an [Error::AmbiguousLanguages] is
 	/// returned, containing the possible languages.
 	fn language_of<'a, W: Iterator<Item = &'a str>>(words: W) -> Result<Language, Error> {
 		let mut words = words.peekable();
@@ -283,7 +290,7 @@ impl Mnemonic {
 			}
 		}
 
-		return Err(Error::AmbiguousWordList(possible));
+		return Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)));
 	}
 
 	/// Parse a mnemonic in normalized UTF8 in the given language.
@@ -479,7 +486,7 @@ mod tests {
 
 	#[cfg(feature = "std")]
 	#[test]
-	fn test_ambiguous_word_list() {
+	fn test_ambiguous_languages() {
 		let mut present = [false; language::MAX_NB_LANGUAGES];
 		let mut present_vec = Vec::new();
 		let mut alternate = true;
@@ -490,8 +497,9 @@ mod tests {
 			}
 			alternate = !alternate;
 		}
-		let err = Error::AmbiguousWordList(present);
-		assert_eq!(err.ambiguous_word_list().unwrap(), present_vec);
+		let amb = AmbiguousLanguages(present);
+		assert_eq!(amb.to_vec(), present_vec);
+		assert_eq!(amb.iter().collect::<Vec<_>>(), present_vec);
 	}
 
 	#[test]
