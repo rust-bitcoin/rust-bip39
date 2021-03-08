@@ -223,17 +223,9 @@ impl Mnemonic {
 		self.0.iter().take_while(|w| !w.is_empty()).map(|w| *w)
 	}
 
-	/// Determine the language of the mnemonic.
-	///
-	/// NOTE: This method only guarantees that the returned language is the
-	/// correct language on the assumption that the mnemonic is valid.
-	/// It does not itself validate the mnemonic.
-	///
-	/// Some word lists don't guarantee that their words don't occur in other
-	/// word lists. In the extremely unlikely case that a word list can be
-	/// interpreted in multiple languages, an [Error::AmbiguousLanguages] is
-	/// returned, containing the possible languages.
-	fn language_of<'a, W: Iterator<Item = &'a str>>(words: W) -> Result<Language, Error> {
+	/// Determine the language of the mnemonic as a word iterator.
+	/// See documentation on [Mnemonic::language_of] for more info.
+	fn language_of_iter<'a, W: Iterator<Item = &'a str>>(words: W) -> Result<Language, Error> {
 		let mut words = words.peekable();
 		let langs = Language::all();
 		{ // Start scope to drop first_word so that words can be reborrowed later.
@@ -293,6 +285,20 @@ impl Mnemonic {
 		return Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)));
 	}
 
+	/// Determine the language of the mnemonic.
+	///
+	/// NOTE: This method only guarantees that the returned language is the
+	/// correct language on the assumption that the mnemonic is valid.
+	/// It does not itself validate the mnemonic.
+	///
+	/// Some word lists don't guarantee that their words don't occur in other
+	/// word lists. In the extremely unlikely case that a word list can be
+	/// interpreted in multiple languages, an [Error::AmbiguousLanguages] is
+	/// returned, containing the possible languages.
+	fn language_of<S: AsRef<str>>(mnemonic: S) -> Result<Language, Error> {
+		Mnemonic::language_of_iter(mnemonic.as_ref().split_whitespace())
+	}
+
 	/// Parse a mnemonic in normalized UTF8 in the given language.
 	pub fn parse_in_normalized(language: Language, s: &str) -> Result<Mnemonic, Error> {
 		let nb_words = s.split_whitespace().count();
@@ -340,7 +346,7 @@ impl Mnemonic {
 
 	/// Parse a mnemonic in normalized UTF8.
 	pub fn parse_normalized(s: &str) -> Result<Mnemonic, Error> {
-		let lang = Mnemonic::language_of(s.split_whitespace())?;
+		let lang = Mnemonic::language_of(s)?;
 		Mnemonic::parse_in_normalized(lang, s)
 	}
 
@@ -361,7 +367,7 @@ impl Mnemonic {
 		let language = if Language::all().len() == 1 {
 			Language::all()[0]
 		} else {
-			Mnemonic::language_of(cow.as_ref().split_whitespace())?
+			Mnemonic::language_of(cow.as_ref())?
 		};
 
 		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
@@ -399,7 +405,7 @@ impl Mnemonic {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
 
-		let language = Mnemonic::language_of(self.word_iter()).unwrap();
+		let language = Mnemonic::language_of_iter(self.word_iter()).unwrap();
 
 		// Preallocate enough space for the longest possible word list
 		let mut entropy = Vec::with_capacity(33);
@@ -479,8 +485,10 @@ mod tests {
 	fn test_language_of() {
 		for lang in Language::all() {
 			let m = Mnemonic::generate_in(*lang, 24).unwrap();
-			assert_eq!(*lang, Mnemonic::language_of(m.word_iter()).unwrap());
-			assert_eq!(*lang, Mnemonic::language_of(m.to_string().split_whitespace()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of_iter(m.word_iter()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of_iter(m.to_string().split_whitespace()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of(m.to_string()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of(&m.to_string()).unwrap());
 		}
 	}
 
