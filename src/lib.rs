@@ -27,7 +27,9 @@
 #![deny(missing_docs)]
 
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-#[cfg(any(test, feature = "std"))] pub extern crate core;
+
+#[cfg(any(test, feature = "std"))]
+pub extern crate core;
 
 extern crate bitcoin_hashes;
 #[cfg(feature = "std")]
@@ -38,8 +40,11 @@ extern crate rand;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
+#[cfg(feature = "core")]
+use core::{fmt, str};
+
 #[cfg(feature = "std")]
-use std::{error, fmt, str};
+use std::error;
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 
@@ -75,7 +80,7 @@ impl AmbiguousLanguages {
 	}
 
 	/// An iterator over the possible languages.
-	#[cfg(feature = "std")]
+	#[cfg(feature = "core")]
 	pub fn iter(&self) -> impl Iterator<Item = Language> + '_ {
 		Language::all().iter().enumerate().filter(move |(i, _)| self.0[*i]).map(|(_, l)| *l)
 	}
@@ -106,7 +111,7 @@ pub enum Error {
 	AmbiguousLanguages(AmbiguousLanguages),
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "core")]
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
@@ -120,7 +125,17 @@ impl fmt::Display for Error {
 				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
-			Error::AmbiguousLanguages(a) => write!(f, "ambiguous word list: {:?}", a.to_vec()),
+			Error::AmbiguousLanguages(a) => {
+				write!(f, "ambiguous word list: ")?;
+				for (i, lang) in a.iter().enumerate() {
+					if i == 0 {
+						write!(f, "{}", lang)?;
+					} else {
+						write!(f, ", {}", lang)?;
+					}
+				}
+				Ok(())
+			}
 		}
 	}
 }
@@ -130,7 +145,7 @@ impl error::Error for Error {}
 
 /// A mnemonic code.
 ///
-/// The [std::str::FromStr] implementation will try to determine the language of the
+/// The [core::str::FromStr] implementation will try to determine the language of the
 /// mnemonic from all the supported languages. (Languages have to be explicitly enabled using
 /// the Cargo features.)
 ///
@@ -443,7 +458,7 @@ impl Mnemonic {
 	}
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "core")]
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		for i in 0..self.0.len() {
@@ -460,12 +475,15 @@ impl fmt::Display for Mnemonic {
 	}
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "core")]
 impl str::FromStr for Mnemonic {
 	type Err = Error;
 
 	fn from_str(s: &str) -> Result<Mnemonic, Error> {
-		Mnemonic::parse(s)
+		#[cfg(feature = "std")]
+		{ Mnemonic::parse(s) }
+		#[cfg(not(feature = "std"))]
+		{ Mnemonic::parse_normalized(s) }
 	}
 }
 
