@@ -32,6 +32,8 @@
 pub extern crate core;
 
 extern crate bitcoin_hashes;
+extern crate rand_core;
+
 #[cfg(feature = "std")]
 extern crate unicode_normalization;
 
@@ -217,19 +219,27 @@ impl Mnemonic {
 		Mnemonic::from_entropy_in(Language::English, entropy)
 	}
 
-	/// Generate a new [Mnemonic] in the given language.
+	/// Generate a new [Mnemonic] in the given language
+	/// with the given randomness source.
 	/// For the different supported word counts, see documentation on [Mnemonic].
-	#[cfg(feature = "rand")]
-	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
+	pub fn generate_in_with<R>(rng: &mut R, language: Language, word_count: usize) -> Result<Mnemonic, Error>
+		where R: rand_core::RngCore + rand_core::CryptoRng,
+	{
 		if word_count < MIN_NB_WORDS || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(word_count));
 		}
 
 		let entropy_bytes = (word_count / 3) * 4;
-		let mut rng = rand::thread_rng();
 		let mut entropy = [0u8; (MAX_NB_WORDS / 3) * 4];
-		rand::RngCore::fill_bytes(&mut rng, &mut entropy[0..entropy_bytes]);
+		rand_core::RngCore::fill_bytes(rng, &mut entropy[0..entropy_bytes]);
 		Mnemonic::from_entropy_in(language, &entropy[0..entropy_bytes])
+	}
+
+	/// Generate a new [Mnemonic] in the given language.
+	/// For the different supported word counts, see documentation on [Mnemonic].
+	#[cfg(feature = "rand")]
+	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
+		Mnemonic::generate_in_with(&mut rand::thread_rng(), language, word_count)
 	}
 
 	/// Generate a new [Mnemonic] in English.
