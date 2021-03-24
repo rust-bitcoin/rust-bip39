@@ -1,6 +1,5 @@
 
-#[cfg(feature = "std")]
-use std::fmt;
+use core::fmt;
 
 mod english;
 #[cfg(feature = "chinese-simplified")]
@@ -153,7 +152,6 @@ impl Language {
 	}
 }
 
-#[cfg(feature = "std")]
 impl fmt::Display for Language {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		fmt::Debug::fmt(self, f)

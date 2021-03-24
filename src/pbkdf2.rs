@@ -8,9 +8,6 @@ fn mnemonic_byte_len(mnemonic: &[&'static str]) -> usize {
 	let mut len = 0;
 	for i in 0..mnemonic.len() {
 		let word = &mnemonic[i];
-		if word.is_empty() {
-			break;
-		}
 		if i > 0 {
 			len += 1;
 		}
@@ -23,9 +20,6 @@ fn mnemonic_byte_len(mnemonic: &[&'static str]) -> usize {
 fn mnemonic_write_into(mnemonic: &[&'static str], engine: &mut sha512::HashEngine) {
 	for i in 0..mnemonic.len() {
 		let word = &mnemonic[i];
-		if word.is_empty() {
-			break;
-		}
 		if i > 0 {
 			engine.input(" ".as_bytes());
 		}
@@ -61,9 +55,6 @@ fn create_hmac_engine(mnemonic: &[&'static str]) -> hmac::HmacEngine<sha512::Has
 		let mut cursor = 0;
 		for i in 0..mnemonic.len() {
 			let word = &mnemonic[i];
-			if word.is_empty() {
-				break;
-			}
 			if i > 0 {
 				ipad[cursor] ^= ' ' as u8;
 				opad[cursor] ^= ' ' as u8;
@@ -88,8 +79,6 @@ fn create_hmac_engine(mnemonic: &[&'static str]) -> hmac::HmacEngine<sha512::Has
 // Method borrowed from rust-bitcoin's endian module.
 #[inline]
 fn u32_to_array_be(val: u32) -> [u8; 4] {
-	debug_assert_eq!(::core::mem::size_of::<u32>(), 4); // size_of isn't a constfn in 1.22
-
 	let mut res = [0; 4];
 	for i in 0..4 {
 		res[i] = ((val >> (4 - i - 1)*8) & 0xff) as u8;

@@ -27,9 +27,13 @@
 #![deny(missing_docs)]
 
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-#[cfg(any(test, feature = "std"))] pub extern crate core;
+
+#[cfg(any(test, feature = "std"))]
+pub extern crate core;
 
 extern crate bitcoin_hashes;
+extern crate rand_core;
+
 #[cfg(feature = "std")]
 extern crate unicode_normalization;
 
@@ -38,8 +42,10 @@ extern crate rand;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
+use core::{fmt, str};
+
 #[cfg(feature = "std")]
-use std::{error, fmt, str};
+use std::error;
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 
@@ -75,7 +81,6 @@ impl AmbiguousLanguages {
 	}
 
 	/// An iterator over the possible languages.
-	#[cfg(feature = "std")]
 	pub fn iter(&self) -> impl Iterator<Item = Language> + '_ {
 		Language::all().iter().enumerate().filter(move |(i, _)| self.0[*i]).map(|(_, l)| *l)
 	}
@@ -106,7 +111,6 @@ pub enum Error {
 	AmbiguousLanguages(AmbiguousLanguages),
 }
 
-#[cfg(feature = "std")]
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
@@ -120,7 +124,17 @@ impl fmt::Display for Error {
 				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
-			Error::AmbiguousLanguages(a) => write!(f, "ambiguous word list: {:?}", a.to_vec()),
+			Error::AmbiguousLanguages(a) => {
+				write!(f, "ambiguous word list: ")?;
+				for (i, lang) in a.iter().enumerate() {
+					if i == 0 {
+						write!(f, "{}", lang)?;
+					} else {
+						write!(f, ", {}", lang)?;
+					}
+				}
+				Ok(())
+			}
 		}
 	}
 }
@@ -130,7 +144,7 @@ impl error::Error for Error {}
 
 /// A mnemonic code.
 ///
-/// The [std::str::FromStr] implementation will try to determine the language of the
+/// The [core::str::FromStr] implementation will try to determine the language of the
 /// mnemonic from all the supported languages. (Languages have to be explicitly enabled using
 /// the Cargo features.)
 ///
@@ -202,23 +216,63 @@ impl Mnemonic {
 		Mnemonic::from_entropy_in(Language::English, entropy)
 	}
 
-	/// Generate a new [Mnemonic] in the given language.
+	/// Generate a new [Mnemonic] in the given language
+	/// with the given randomness source.
 	/// For the different supported word counts, see documentation on [Mnemonic].
-	#[cfg(feature = "rand")]
-	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
+	///
+	/// Example:
+	///
+	/// ```
+	/// extern crate rand;
+	/// extern crate bip39;
+	///
+	/// use bip39::{Mnemonic, Language};
+	///
+	/// let mut rng = rand::thread_rng();
+	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
+	/// ```
+	pub fn generate_in_with<R>(rng: &mut R, language: Language, word_count: usize) -> Result<Mnemonic, Error>
+		where R: rand_core::RngCore + rand_core::CryptoRng,
+	{
 		if word_count < MIN_NB_WORDS || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(word_count));
 		}
 
 		let entropy_bytes = (word_count / 3) * 4;
-		let mut rng = rand::thread_rng();
 		let mut entropy = [0u8; (MAX_NB_WORDS / 3) * 4];
-		rand::RngCore::fill_bytes(&mut rng, &mut entropy[0..entropy_bytes]);
+		rand_core::RngCore::fill_bytes(rng, &mut entropy[0..entropy_bytes]);
 		Mnemonic::from_entropy_in(language, &entropy[0..entropy_bytes])
+	}
+
+	/// Generate a new [Mnemonic] in the given language.
+	/// For the different supported word counts, see documentation on [Mnemonic].
+	///
+	/// Example:
+	///
+	/// ```
+	/// extern crate bip39;
+	///
+	/// use bip39::{Mnemonic, Language};
+	///
+	/// let m = Mnemonic::generate_in(Language::English, 24).unwrap();
+	/// ```
+	#[cfg(feature = "rand")]
+	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
+		Mnemonic::generate_in_with(&mut rand::thread_rng(), language, word_count)
 	}
 
 	/// Generate a new [Mnemonic] in English.
 	/// For the different supported word counts, see documentation on [Mnemonic].
+	///
+	/// Example:
+	///
+	/// ```
+	/// extern crate bip39;
+	///
+	/// use bip39::{Mnemonic,};
+	///
+	/// let m = Mnemonic::generate(24).unwrap();
+	/// ```
 	#[cfg(feature = "rand")]
 	pub fn generate(word_count: usize) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in(Language::English, word_count)
@@ -240,18 +294,8 @@ impl Mnemonic {
 				return Err(Error::BadWordCount(0));
 			}
 
-			// For efficiency reasons, we add a special case for when there's
-			// only a single language enabled.
-			if langs.len() == 1 {
-				let lang = langs[0];
-				return if lang.find_word(first_word).is_some() {
-					Ok(lang)
-				} else {
-					Err(Error::UnknownWord(0))
-				};
-			}
-
-			// Otherwise we first try wordlists that have guaranteed unique words.
+			// We first try find the first word in wordlists that
+			// have guaranteed unique words.
 			for language in langs.iter().filter(|l| l.unique_words()) {
 				if language.find_word(first_word).is_some() {
 					return Ok(*language);
@@ -271,20 +315,22 @@ impl Mnemonic {
 		for (idx, word) in words.enumerate() {
 			// Scrap languages that don't have this word.
 			for (i, lang) in langs.iter().enumerate() {
-				if possible[i] {
-					possible[i] = lang.find_word(word).is_some();
+				possible[i] &= lang.find_word(word).is_some();
+			}
+
+			// Get an iterator over remaining possible languages.
+			let mut iter = possible.iter().zip(langs.iter()).filter(|(p, _)| **p).map(|(_, l)| l);
+
+			match iter.next() {
+				// If all languages were eliminated, it's an invalid word.
+				None => return Err(Error::UnknownWord(idx)),
+				// If not, see if there is a second one remaining.
+				Some(remaining) => {
+					if iter.next().is_none() {
+						// No second remaining, we found our language.
+						return Ok(*remaining);
+					}
 				}
-			}
-
-			// If there is just one language left, return it.
-			let nb_possible = possible.iter().filter(|p| **p).count();
-			if nb_possible == 1 {
-				return Ok(*possible.iter().zip(langs.iter()).find(|&(p, _)| *p).map(|(_, l)| l).unwrap());
-			}
-
-			// If all languages were eliminated, it's an invalid word.
-			if nb_possible == 0 {
-				return Err(Error::UnknownWord(idx));
 			}
 		}
 
@@ -389,8 +435,9 @@ impl Mnemonic {
 		const PBKDF2_ROUNDS: usize = 2048;
 		const PBKDF2_BYTES: usize = 64;
 
+		let nb_words = self.word_count();
 		let mut seed = [0u8; PBKDF2_BYTES];
-		pbkdf2::pbkdf2(&self.0, normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
+		pbkdf2::pbkdf2(&self.0[0..nb_words], normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
 		seed
 	}
 
@@ -451,7 +498,6 @@ impl Mnemonic {
 	}
 }
 
-#[cfg(feature = "std")]
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		for i in 0..self.0.len() {
@@ -468,12 +514,14 @@ impl fmt::Display for Mnemonic {
 	}
 }
 
-#[cfg(feature = "std")]
 impl str::FromStr for Mnemonic {
 	type Err = Error;
 
 	fn from_str(s: &str) -> Result<Mnemonic, Error> {
-		Mnemonic::parse(s)
+		#[cfg(feature = "std")]
+		{ Mnemonic::parse(s) }
+		#[cfg(not(feature = "std"))]
+		{ Mnemonic::parse_normalized(s) }
 	}
 }
 
@@ -482,17 +530,6 @@ mod tests {
 	use super::*;
 
 	use bitcoin_hashes::hex::FromHex;
-
-	#[cfg(feature = "rand")]
-	#[test]
-	fn test_bit_counts() {
-		let m = Mnemonic::generate(12).unwrap();
-		assert_eq!(m.word_count(), 12);
-		let m = Mnemonic::generate(18).unwrap();
-		assert_eq!(m.word_count(), 18);
-		let m = Mnemonic::generate(24).unwrap();
-		assert_eq!(m.word_count(), 24);
-	}
 
 	#[cfg(feature = "rand")]
 	#[test]
@@ -522,6 +559,14 @@ mod tests {
 		let amb = AmbiguousLanguages(present);
 		assert_eq!(amb.to_vec(), present_vec);
 		assert_eq!(amb.iter().collect::<Vec<_>>(), present_vec);
+	}
+
+	#[cfg(feature = "rand")]
+	#[test]
+	fn test_generate() {
+		let _ = Mnemonic::generate(24).unwrap();
+		let _ = Mnemonic::generate_in(Language::English, 24).unwrap();
+		let _ = Mnemonic::generate_in_with(&mut rand::thread_rng(), Language::English, 24).unwrap();
 	}
 
 	#[test]
