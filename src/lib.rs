@@ -406,8 +406,9 @@ impl Mnemonic {
 		const PBKDF2_ROUNDS: usize = 2048;
 		const PBKDF2_BYTES: usize = 64;
 
+		let nb_words = self.word_count();
 		let mut seed = [0u8; PBKDF2_BYTES];
-		pbkdf2::pbkdf2(&self.0, normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
+		pbkdf2::pbkdf2(&self.0[0..nb_words], normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
 		seed
 	}
 
