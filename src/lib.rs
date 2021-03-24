@@ -219,6 +219,18 @@ impl Mnemonic {
 	/// Generate a new [Mnemonic] in the given language
 	/// with the given randomness source.
 	/// For the different supported word counts, see documentation on [Mnemonic].
+	///
+	/// Example:
+	///
+	/// ```
+	/// extern crate rand;
+	/// extern crate bip39;
+	///
+	/// use bip39::{Mnemonic, Language};
+	///
+	/// let mut rng = rand::thread_rng();
+	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
+	/// ```
 	pub fn generate_in_with<R>(rng: &mut R, language: Language, word_count: usize) -> Result<Mnemonic, Error>
 		where R: rand_core::RngCore + rand_core::CryptoRng,
 	{
@@ -234,6 +246,16 @@ impl Mnemonic {
 
 	/// Generate a new [Mnemonic] in the given language.
 	/// For the different supported word counts, see documentation on [Mnemonic].
+	///
+	/// Example:
+	///
+	/// ```
+	/// extern crate bip39;
+	///
+	/// use bip39::{Mnemonic, Language};
+	///
+	/// let m = Mnemonic::generate_in(Language::English, 24).unwrap();
+	/// ```
 	#[cfg(feature = "rand")]
 	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in_with(&mut rand::thread_rng(), language, word_count)
@@ -241,6 +263,16 @@ impl Mnemonic {
 
 	/// Generate a new [Mnemonic] in English.
 	/// For the different supported word counts, see documentation on [Mnemonic].
+	///
+	/// Example:
+	///
+	/// ```
+	/// extern crate bip39;
+	///
+	/// use bip39::{Mnemonic,};
+	///
+	/// let m = Mnemonic::generate(24).unwrap();
+	/// ```
 	#[cfg(feature = "rand")]
 	pub fn generate(word_count: usize) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in(Language::English, word_count)
@@ -501,17 +533,6 @@ mod tests {
 
 	#[cfg(feature = "rand")]
 	#[test]
-	fn test_bit_counts() {
-		let m = Mnemonic::generate(12).unwrap();
-		assert_eq!(m.word_count(), 12);
-		let m = Mnemonic::generate(18).unwrap();
-		assert_eq!(m.word_count(), 18);
-		let m = Mnemonic::generate(24).unwrap();
-		assert_eq!(m.word_count(), 24);
-	}
-
-	#[cfg(feature = "rand")]
-	#[test]
 	fn test_language_of() {
 		for lang in Language::all() {
 			let m = Mnemonic::generate_in(*lang, 24).unwrap();
@@ -538,6 +559,14 @@ mod tests {
 		let amb = AmbiguousLanguages(present);
 		assert_eq!(amb.to_vec(), present_vec);
 		assert_eq!(amb.iter().collect::<Vec<_>>(), present_vec);
+	}
+
+	#[cfg(feature = "rand")]
+	#[test]
+	fn test_generate() {
+		let _ = Mnemonic::generate(24).unwrap();
+		let _ = Mnemonic::generate_in(Language::English, 24).unwrap();
+		let _ = Mnemonic::generate_in_with(&mut rand::thread_rng(), Language::English, 24).unwrap();
 	}
 
 	#[test]
