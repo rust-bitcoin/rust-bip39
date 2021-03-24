@@ -240,18 +240,8 @@ impl Mnemonic {
 				return Err(Error::BadWordCount(0));
 			}
 
-			// For efficiency reasons, we add a special case for when there's
-			// only a single language enabled.
-			if langs.len() == 1 {
-				let lang = langs[0];
-				return if lang.find_word(first_word).is_some() {
-					Ok(lang)
-				} else {
-					Err(Error::UnknownWord(0))
-				};
-			}
-
-			// Otherwise we first try wordlists that have guaranteed unique words.
+			// We first try find the first word in wordlists that
+			// have guaranteed unique words.
 			for language in langs.iter().filter(|l| l.unique_words()) {
 				if language.find_word(first_word).is_some() {
 					return Ok(*language);
@@ -271,20 +261,22 @@ impl Mnemonic {
 		for (idx, word) in words.enumerate() {
 			// Scrap languages that don't have this word.
 			for (i, lang) in langs.iter().enumerate() {
-				if possible[i] {
-					possible[i] = lang.find_word(word).is_some();
+				possible[i] &= lang.find_word(word).is_some();
+			}
+
+			// Get an iterator over remaining possible languages.
+			let mut iter = possible.iter().zip(langs.iter()).filter(|(p, _)| **p).map(|(_, l)| l);
+
+			match iter.next() {
+				// If all languages were eliminated, it's an invalid word.
+				None => return Err(Error::UnknownWord(idx)),
+				// If not, see if there is a second one remaining.
+				Some(remaining) => {
+					if iter.next().is_none() {
+						// No second remaining, we found our language.
+						return Ok(*remaining);
+					}
 				}
-			}
-
-			// If there is just one language left, return it.
-			let nb_possible = possible.iter().filter(|p| **p).count();
-			if nb_possible == 1 {
-				return Ok(*possible.iter().zip(langs.iter()).find(|&(p, _)| *p).map(|(_, l)| l).unwrap());
-			}
-
-			// If all languages were eliminated, it's an invalid word.
-			if nb_possible == 0 {
-				return Err(Error::UnknownWord(idx));
 			}
 		}
 
