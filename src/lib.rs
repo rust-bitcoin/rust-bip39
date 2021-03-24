@@ -25,7 +25,6 @@
 #![deny(dead_code)]
 #![deny(unused_imports)]
 #![deny(missing_docs)]
-
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 
 #[cfg(any(test, feature = "std"))]
@@ -45,9 +44,9 @@ pub extern crate serde;
 use core::{fmt, str};
 
 #[cfg(feature = "std")]
-use std::error;
-#[cfg(feature = "std")]
 use std::borrow::Cow;
+#[cfg(feature = "std")]
+use std::error;
 
 use bitcoin_hashes::{sha256, Hash};
 
@@ -114,14 +113,14 @@ pub enum Error {
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
-			Error::BadWordCount(c) => write!(f,
-				"mnemonic has a word count that is not a multiple of 6: {}", c,
-			),
-			Error::UnknownWord(i) => write!(f,
-				"mnemonic contains an unknown word (word {})", i,
-			),
-			Error::BadEntropyBitCount(c) => write!(f,
-				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits", c,
+			Error::BadWordCount(c) => {
+				write!(f, "mnemonic has a word count that is not a multiple of 6: {}", c,)
+			}
+			Error::UnknownWord(i) => write!(f, "mnemonic contains an unknown word (word {})", i,),
+			Error::BadEntropyBitCount(c) => write!(
+				f,
+				"entropy was not between 128-256 bits or not a multiple of 32 bits: {} bits",
+				c,
 			),
 			Error::InvalidChecksum => write!(f, "the mnemonic has an invalid checksum"),
 			Error::AmbiguousLanguages(a) => {
@@ -231,8 +230,13 @@ impl Mnemonic {
 	/// let mut rng = rand::thread_rng();
 	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
 	/// ```
-	pub fn generate_in_with<R>(rng: &mut R, language: Language, word_count: usize) -> Result<Mnemonic, Error>
-		where R: rand_core::RngCore + rand_core::CryptoRng,
+	pub fn generate_in_with<R>(
+		rng: &mut R,
+		language: Language,
+		word_count: usize,
+	) -> Result<Mnemonic, Error>
+	where
+		R: rand_core::RngCore + rand_core::CryptoRng,
 	{
 		if word_count < MIN_NB_WORDS || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
 			return Err(Error::BadWordCount(word_count));
@@ -288,7 +292,8 @@ impl Mnemonic {
 	fn language_of_iter<'a, W: Iterator<Item = &'a str>>(words: W) -> Result<Language, Error> {
 		let mut words = words.peekable();
 		let langs = Language::all();
-		{ // Start scope to drop first_word so that words can be reborrowed later.
+		{
+			// Start scope to drop first_word so that words can be reborrowed later.
 			let first_word = words.peek().ok_or(Error::BadWordCount(0))?;
 			if first_word.len() == 0 {
 				return Err(Error::BadWordCount(0));
@@ -404,7 +409,10 @@ impl Mnemonic {
 
 	/// Parse a mnemonic in the given language.
 	#[cfg(feature = "std")]
-	pub fn parse_in<'a, S: Into<Cow<'a, str>>>(language: Language, s: S) -> Result<Mnemonic, Error> {
+	pub fn parse_in<'a, S: Into<Cow<'a, str>>>(
+		language: Language,
+		s: S,
+	) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
 		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
@@ -437,7 +445,12 @@ impl Mnemonic {
 
 		let nb_words = self.word_count();
 		let mut seed = [0u8; PBKDF2_BYTES];
-		pbkdf2::pbkdf2(&self.0[0..nb_words], normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
+		pbkdf2::pbkdf2(
+			&self.0[0..nb_words],
+			normalized_passphrase.as_bytes(),
+			PBKDF2_ROUNDS,
+			&mut seed,
+		);
 		seed
 	}
 
@@ -519,9 +532,13 @@ impl str::FromStr for Mnemonic {
 
 	fn from_str(s: &str) -> Result<Mnemonic, Error> {
 		#[cfg(feature = "std")]
-		{ Mnemonic::parse(s) }
+		{
+			Mnemonic::parse(s)
+		}
 		#[cfg(not(feature = "std"))]
-		{ Mnemonic::parse_normalized(s) }
+		{
+			Mnemonic::parse_normalized(s)
+		}
 	}
 }
 
@@ -537,7 +554,10 @@ mod tests {
 		for lang in Language::all() {
 			let m = Mnemonic::generate_in(*lang, 24).unwrap();
 			assert_eq!(*lang, Mnemonic::language_of_iter(m.word_iter()).unwrap());
-			assert_eq!(*lang, Mnemonic::language_of_iter(m.to_string().split_whitespace()).unwrap());
+			assert_eq!(
+				*lang,
+				Mnemonic::language_of_iter(m.to_string().split_whitespace()).unwrap()
+			);
 			assert_eq!(*lang, Mnemonic::language_of(m.to_string()).unwrap());
 			assert_eq!(*lang, Mnemonic::language_of(&m.to_string()).unwrap());
 		}
@@ -700,30 +720,56 @@ mod tests {
 			let entropy = Vec::<u8>::from_hex(&vector.0).unwrap();
 			let mnemonic_str = vector.1;
 			let seed = Vec::<u8>::from_hex(&vector.2).unwrap();
-			
+
 			let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
 
-			assert_eq!(mnemonic, Mnemonic::parse_in_normalized(Language::English, mnemonic_str).unwrap(),
-				"failed vector: {}", mnemonic_str);
-			assert_eq!(mnemonic, Mnemonic::parse_normalized(mnemonic_str).unwrap(),
-				"failed vector: {}", mnemonic_str);
-			assert_eq!(&seed[..], &mnemonic.to_seed_normalized("TREZOR")[..],
-				"failed vector: {}", mnemonic_str);
+			assert_eq!(
+				mnemonic,
+				Mnemonic::parse_in_normalized(Language::English, mnemonic_str).unwrap(),
+				"failed vector: {}",
+				mnemonic_str
+			);
+			assert_eq!(
+				mnemonic,
+				Mnemonic::parse_normalized(mnemonic_str).unwrap(),
+				"failed vector: {}",
+				mnemonic_str
+			);
+			assert_eq!(
+				&seed[..],
+				&mnemonic.to_seed_normalized("TREZOR")[..],
+				"failed vector: {}",
+				mnemonic_str
+			);
 
 			#[cfg(features = "std")]
 			{
-				assert_eq!(&mnemonic.to_string(), mnemonic_str,
-					"failed vector: {}", mnemonic_str);
-				assert_eq!(mnemonic, Mnemonic::parse_in(Language::English, mnemonic_str).unwrap(),
-					"failed vector: {}", mnemonic_str);
-				assert_eq!(mnemonic, Mnemonic::parse(mnemonic_str).unwrap(),
-					"failed vector: {}", mnemonic_str);
-				assert_eq!(&seed[..], &mnemonic.to_seed("TREZOR")[..],
-					"failed vector: {}", mnemonic_str);
-				assert_eq!(&entropy, &mnemonic.to_entropy(),
-					"failed vector: {}", mnemonic_str);
-				assert_eq!(&entropy, &mnemonic.to_entropy_array().0[0..entropy.len()],
-					"failed vector: {}", mnemonic_str);
+				assert_eq!(&mnemonic.to_string(), mnemonic_str, "failed vector: {}", mnemonic_str);
+				assert_eq!(
+					mnemonic,
+					Mnemonic::parse_in(Language::English, mnemonic_str).unwrap(),
+					"failed vector: {}",
+					mnemonic_str
+				);
+				assert_eq!(
+					mnemonic,
+					Mnemonic::parse(mnemonic_str).unwrap(),
+					"failed vector: {}",
+					mnemonic_str
+				);
+				assert_eq!(
+					&seed[..],
+					&mnemonic.to_seed("TREZOR")[..],
+					"failed vector: {}",
+					mnemonic_str
+				);
+				assert_eq!(&entropy, &mnemonic.to_entropy(), "failed vector: {}", mnemonic_str);
+				assert_eq!(
+					&entropy,
+					&mnemonic.to_entropy_array().0[0..entropy.len()],
+					"failed vector: {}",
+					mnemonic_str
+				);
 			}
 		}
 	}
@@ -765,22 +811,13 @@ mod tests {
 	#[test]
 	fn test_invalid_entropy() {
 		//between 128 and 256 bits, but not divisible by 32
-		assert_eq!(
-			Mnemonic::from_entropy(&vec![b'x'; 17]),
-			Err(Error::BadEntropyBitCount(136))
-		);
+		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 17]), Err(Error::BadEntropyBitCount(136)));
 
 		//less than 128 bits
-		assert_eq!(
-			Mnemonic::from_entropy(&vec![b'x'; 4]),
-			Err(Error::BadEntropyBitCount(32))
-		);
+		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 4]), Err(Error::BadEntropyBitCount(32)));
 
 		//greater than 256 bits
-		assert_eq!(
-			Mnemonic::from_entropy(&vec![b'x'; 36]),
-			Err(Error::BadEntropyBitCount(288))
-		);
+		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
 	}
 
 	#[cfg(all(feature = "japanese", feature = "std"))]
@@ -945,19 +982,17 @@ mod tests {
 			let mnemonic_str = vector.1;
 			let passphrase = vector.2;
 			let seed = Vec::<u8>::from_hex(&vector.3).unwrap();
-			
+
 			let mnemonic = Mnemonic::from_entropy_in(Language::Japanese, &entropy).unwrap();
 
-			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..],
-				"failed vector: {}", mnemonic_str);
+			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..], "failed vector: {}", mnemonic_str);
 			let rt = Mnemonic::parse_in(Language::Japanese, mnemonic.to_string())
 				.expect(&format!("vector: {}", mnemonic_str));
 			assert_eq!(seed, &rt.to_seed(passphrase)[..]);
 
 			let mnemonic = Mnemonic::parse_in(Language::Japanese, mnemonic_str)
 				.expect(&format!("vector: {}", mnemonic_str));
-			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..],
-				"failed vector: {}", mnemonic_str);
+			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..], "failed vector: {}", mnemonic_str);
 		}
 	}
 }
