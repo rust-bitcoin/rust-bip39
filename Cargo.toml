@@ -16,8 +16,7 @@ path = "src/lib.rs"
 
 [features]
 default = [ "std" ]
-core = []
-std = [ "core", "unicode-normalization", "serde/std" ]
+std = [ "unicode-normalization", "serde/std" ]
 
 # Note: English is the standard for bip39 so always included
 chinese-simplified = []

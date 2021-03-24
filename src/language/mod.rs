@@ -1,5 +1,4 @@
 
-#[cfg(feature = "core")]
 use core::fmt;
 
 mod english;
@@ -153,7 +152,6 @@ impl Language {
 	}
 }
 
-#[cfg(feature = "core")]
 impl fmt::Display for Language {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		fmt::Debug::fmt(self, f)

@@ -42,7 +42,6 @@ extern crate rand;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
-#[cfg(feature = "core")]
 use core::{fmt, str};
 
 #[cfg(feature = "std")]
@@ -82,7 +81,6 @@ impl AmbiguousLanguages {
 	}
 
 	/// An iterator over the possible languages.
-	#[cfg(feature = "core")]
 	pub fn iter(&self) -> impl Iterator<Item = Language> + '_ {
 		Language::all().iter().enumerate().filter(move |(i, _)| self.0[*i]).map(|(_, l)| *l)
 	}
@@ -113,7 +111,6 @@ pub enum Error {
 	AmbiguousLanguages(AmbiguousLanguages),
 }
 
-#[cfg(feature = "core")]
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
@@ -469,7 +466,6 @@ impl Mnemonic {
 	}
 }
 
-#[cfg(feature = "core")]
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		for i in 0..self.0.len() {
@@ -486,7 +482,6 @@ impl fmt::Display for Mnemonic {
 	}
 }
 
-#[cfg(feature = "core")]
 impl str::FromStr for Mnemonic {
 	type Err = Error;
 

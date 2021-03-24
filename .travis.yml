@@ -19,10 +19,8 @@ before_install:
 script:
   - cargo build --verbose
   - cargo test --verbose
-  - cargo build --verbose --no-default-features
-  - cargo test --verbose --no-default-features
-  - cargo build --verbose --no-default-features --features core,all-languages
-  - cargo test --verbose --no-default-features --features core,all-languages
+  - cargo build --verbose --no-default-features --features all-languages
+  - cargo test --verbose --no-default-features --features all-languages
   - cargo build --verbose --features rand,all-languages
   - cargo test --verbose --features rand,all-languages
   # benchmarks
