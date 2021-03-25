@@ -1,4 +1,3 @@
-
 use bitcoin_hashes::{hmac, sha512, Hash, HashEngine};
 
 const SALT_PREFIX: &'static str = "mnemonic";
@@ -81,7 +80,7 @@ fn create_hmac_engine(mnemonic: &[&'static str]) -> hmac::HmacEngine<sha512::Has
 fn u32_to_array_be(val: u32) -> [u8; 4] {
 	let mut res = [0; 4];
 	for i in 0..4 {
-		res[i] = ((val >> (4 - i - 1)*8) & 0xff) as u8;
+		res[i] = ((val >> (4 - i - 1) * 8) & 0xff) as u8;
 	}
 	res
 }
@@ -98,7 +97,9 @@ pub(crate) fn pbkdf2(mnemonic: &[&'static str], unprefixed_salt: &[u8], c: usize
 	let prf = create_hmac_engine(mnemonic);
 
 	for (i, chunk) in res.chunks_mut(sha512::Hash::LEN).enumerate() {
-		for v in chunk.iter_mut() { *v = 0; }
+		for v in chunk.iter_mut() {
+			*v = 0;
+		}
 
 		let mut salt = {
 			let mut prfc = prf.clone();

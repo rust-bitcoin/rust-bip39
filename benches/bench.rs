@@ -8,8 +8,13 @@ use test::Bencher;
 use bip39::*;
 
 #[cfg(not(any(
-	feature = "chinese-simplified", feature = "chinese-traditional", feature = "czech",
-	feature = "french", feature = "italian", feature = "japanese", feature = "korean",
+	feature = "chinese-simplified",
+	feature = "chinese-traditional",
+	feature = "czech",
+	feature = "french",
+	feature = "italian",
+	feature = "japanese",
+	feature = "korean",
 	feature = "spanish"
 )))]
 const LANG: Language = Language::English;
@@ -32,38 +37,38 @@ const LANG: Language = Language::Spanish;
 
 #[bench]
 fn validate(b: &mut Bencher) {
-    let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
-    let mnemonic = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
+	let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
+	let mnemonic = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
 	assert_eq!(mnemonic.word_count(), 24);
 	let phrase = mnemonic.to_string();
 
-    b.iter(|| {
-        let _ = Mnemonic::parse_in(Language::English, &phrase);
-    });
+	b.iter(|| {
+		let _ = Mnemonic::parse_in(Language::English, &phrase);
+	});
 }
 
 #[bench]
 fn from_entropy(b: &mut Bencher) {
-    let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
+	let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
 
-    b.iter(|| {
-        let _ = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
-    });
+	b.iter(|| {
+		let _ = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
+	});
 }
 
 #[bench]
 fn new_mnemonic(b: &mut Bencher) {
-    b.iter(|| {
-        let _ = Mnemonic::generate_in(LANG, 24);
-    });
+	b.iter(|| {
+		let _ = Mnemonic::generate_in(LANG, 24);
+	});
 }
 
 #[bench]
 fn to_seed(b: &mut Bencher) {
-    let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
-    let m = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
+	let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
+	let m = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
 
-    b.iter(|| {
-        let _ = m.to_seed("");
-    });
+	b.iter(|| {
+		let _ = m.to_seed("");
+	});
 }
