@@ -67,6 +67,9 @@ const MIN_NB_WORDS: usize = 12;
 /// The maximum number of words in a mnemonic.
 const MAX_NB_WORDS: usize = 24;
 
+/// The index used to indicate the mnemonic ended.
+const EOF: u16 = u16::max_value();
+
 /// A structured used in the [Error::AmbiguousLanguages] variant that iterates
 /// over the possible languages.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -149,7 +152,13 @@ impl error::Error for Error {}
 ///
 /// Supported number of words are 12, 18 and 24.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Mnemonic([&'static str; MAX_NB_WORDS]);
+pub struct Mnemonic {
+	/// The language the mnemonic.
+	lang: Language,
+	/// The indiced of the words.
+	/// Mnemonics with less than the max nb of words are terminated with EOF.
+	words: [u16; MAX_NB_WORDS],
+}
 
 serde_string_impl!(Mnemonic, "a BIP-39 Mnemonic Code");
 
@@ -194,7 +203,7 @@ impl Mnemonic {
 			bits[8 * nb_bytes + i] = (check[i / 8] & (1 << (7 - (i % 8)))) > 0;
 		}
 
-		let mut words: [&'static str; MAX_NB_WORDS] = Default::default();
+		let mut words = [EOF; MAX_NB_WORDS];
 		let nb_words = nb_bytes * 3 / 4;
 		for i in 0..nb_words {
 			let mut idx = 0;
@@ -203,10 +212,13 @@ impl Mnemonic {
 					idx += 1 << (10 - j);
 				}
 			}
-			words[i] = language.word_list()[idx];
+			words[i] = idx;
 		}
 
-		Ok(Mnemonic(words))
+		Ok(Mnemonic {
+			lang: language,
+			words: words,
+		})
 	}
 
 	/// Create a new English [Mnemonic] from the given entropy.
@@ -283,8 +295,9 @@ impl Mnemonic {
 	}
 
 	/// Get an iterator over the words.
-	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + '_ {
-		self.0.iter().take_while(|w| !w.is_empty()).map(|w| *w)
+	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
+		let list = self.lang.word_list();
+		self.words.iter().take_while(|w| **w != EOF).map(move |w| list[*w as usize])
 	}
 
 	/// Determine the language of the mnemonic as a word iterator.
@@ -364,7 +377,7 @@ impl Mnemonic {
 		}
 
 		// Here we will store the eventual words.
-		let mut words: [&'static str; MAX_NB_WORDS] = Default::default();
+		let mut words = [EOF; MAX_NB_WORDS];
 
 		// And here we keep track of the bits to calculate and validate the checksum.
 		// We only use `nb_words * 11` elements in this array.
@@ -373,7 +386,7 @@ impl Mnemonic {
 		for (i, word) in s.split_whitespace().enumerate() {
 			let idx = language.find_word(word).ok_or(Error::UnknownWord(i))?;
 
-			words[i] = language.word_list()[idx];
+			words[i] = idx;
 
 			for j in 0..11 {
 				bits[i * 11 + j] = idx >> (10 - j) & 1 == 1;
@@ -398,7 +411,10 @@ impl Mnemonic {
 			}
 		}
 
-		Ok(Mnemonic(words))
+		Ok(Mnemonic {
+			lang: language,
+			words: words,
+		})
 	}
 
 	/// Parse a mnemonic in normalized UTF8.
@@ -435,7 +451,7 @@ impl Mnemonic {
 
 	/// Get the number of words in the mnemonic.
 	pub fn word_count(&self) -> usize {
-		self.0.iter().take_while(|w| !w.is_empty()).count()
+		self.words.iter().take_while(|w| **w != EOF).count()
 	}
 
 	/// Convert to seed bytes with a passphrase in normalized UTF8.
@@ -443,10 +459,9 @@ impl Mnemonic {
 		const PBKDF2_ROUNDS: usize = 2048;
 		const PBKDF2_BYTES: usize = 64;
 
-		let nb_words = self.word_count();
 		let mut seed = [0u8; PBKDF2_BYTES];
 		pbkdf2::pbkdf2(
-			&self.0[0..nb_words],
+			self.word_iter(),
 			normalized_passphrase.as_bytes(),
 			PBKDF2_ROUNDS,
 			&mut seed,
@@ -513,11 +528,7 @@ impl Mnemonic {
 
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		for i in 0..self.0.len() {
-			let word = &self.0[i];
-			if word.is_empty() {
-				break;
-			}
+		for (i, word) in self.word_iter().enumerate() {
 			if i > 0 {
 				f.write_str(" ")?;
 			}

@@ -146,8 +146,8 @@ impl Language {
 
 	/// Get the index of the word in the word list.
 	#[inline]
-	pub(crate) fn find_word(self, word: &str) -> Option<usize> {
-		self.word_list().iter().position(|w| *w == word)
+	pub(crate) fn find_word(self, word: &str) -> Option<u16> {
+		self.word_list().iter().position(|w| *w == word).map(|i| i as u16)
 	}
 }
 
