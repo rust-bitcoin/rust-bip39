@@ -352,8 +352,18 @@ impl Mnemonic {
 	/// word lists. In the extremely unlikely case that a word list can be
 	/// interpreted in multiple languages, an [Error::AmbiguousLanguages] is
 	/// returned, containing the possible languages.
-	fn language_of<S: AsRef<str>>(mnemonic: S) -> Result<Language, Error> {
+	pub fn language_of<S: AsRef<str>>(mnemonic: S) -> Result<Language, Error> {
 		Mnemonic::language_of_iter(mnemonic.as_ref().split_whitespace())
+	}
+
+	/// Get this mnemonic's language.
+	///
+	/// Some word lists don't guarantee that their words don't occur in other
+	/// word lists. In the extremely unlikely case that a word list can be
+	/// interpreted in multiple languages, an [Error::AmbiguousLanguages] is
+	/// returned, containing the possible languages.
+	pub fn language(&self) -> Result<Language, Error> {
+		Mnemonic::language_of_iter(self.word_iter())
 	}
 
 	/// Parse a mnemonic in normalized UTF8 in the given language.
