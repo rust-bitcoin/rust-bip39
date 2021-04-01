@@ -294,6 +294,11 @@ impl Mnemonic {
 		Mnemonic::generate_in(Language::English, word_count)
 	}
 
+	/// Get the language of the [Mnemonic].
+	pub fn language(&self) -> Language {
+		self.lang
+	}
+
 	/// Get an iterator over the words.
 	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
 		let list = self.lang.word_list();
