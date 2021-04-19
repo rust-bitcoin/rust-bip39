@@ -53,6 +53,11 @@ use bitcoin_hashes::{sha256, Hash};
 #[cfg(feature = "std")]
 use unicode_normalization::UnicodeNormalization;
 
+#[cfg(feature = "zeroize")]
+extern crate zeroize;
+#[cfg(feature = "zeroize")]
+use zeroize::Zeroize;
+
 #[macro_use]
 mod internal_macros;
 mod language;
@@ -158,6 +163,13 @@ pub struct Mnemonic {
 	/// The indiced of the words.
 	/// Mnemonics with less than the max nb of words are terminated with EOF.
 	words: [u16; MAX_NB_WORDS],
+}
+
+#[cfg(feature = "zeroize")]
+impl Zeroize for Mnemonic {
+	fn zeroize(&mut self) {
+		self.words.zeroize()
+	}
 }
 
 serde_string_impl!(Mnemonic, "a BIP-39 Mnemonic Code");
