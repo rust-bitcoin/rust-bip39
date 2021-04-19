@@ -55,6 +55,12 @@ pub enum Language {
 	Spanish,
 }
 
+impl Default for Language {
+	fn default() -> Self {
+		Language::English
+	}
+}
+
 impl Language {
 	/// The list of supported languages.
 	/// Language support is managed by compile features.
