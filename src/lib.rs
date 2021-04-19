@@ -157,6 +157,7 @@ impl error::Error for Error {}
 ///
 /// Supported number of words are 12, 18 and 24.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize), zeroize(drop))]
 pub struct Mnemonic {
 	/// The language the mnemonic.
 	lang: Language,
@@ -166,11 +167,7 @@ pub struct Mnemonic {
 }
 
 #[cfg(feature = "zeroize")]
-impl Zeroize for Mnemonic {
-	fn zeroize(&mut self) {
-		self.words.zeroize()
-	}
-}
+impl zeroize::DefaultIsZeroes for Language {}
 
 serde_string_impl!(Mnemonic, "a BIP-39 Mnemonic Code");
 
