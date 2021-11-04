@@ -16,7 +16,8 @@ path = "src/lib.rs"
 
 [features]
 default = [ "std" ]
-std = [ "unicode-normalization", "serde/std" ]
+std = [ "unicode-normalization", "serde/std", "bitcoin_hashes/std" ]
+no-std = [ "bitcoin_hashes/alloc" ]
 
 # Note: English is the standard for bip39 so always included
 chinese-simplified = []
@@ -40,7 +41,7 @@ all-languages = [
 ]
 
 [dependencies]
-bitcoin_hashes = "0.9.4"
+bitcoin_hashes = { version = "0.9.4", default-features = false }
 rand_core = "0.4.0"
 
 unicode-normalization = { version = "=0.1.9", optional = true }
