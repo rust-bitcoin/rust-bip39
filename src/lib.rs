@@ -250,7 +250,7 @@ impl Mnemonic {
 	where
 		R: rand_core::RngCore + rand_core::CryptoRng,
 	{
-		if word_count < MIN_NB_WORDS || word_count % 6 != 0 || word_count > MAX_NB_WORDS {
+		if is_invalid_word_count(word_count) {
 			return Err(Error::BadWordCount(word_count));
 		}
 
@@ -377,7 +377,7 @@ impl Mnemonic {
 	/// Parse a mnemonic in normalized UTF8 in the given language.
 	pub fn parse_in_normalized(language: Language, s: &str) -> Result<Mnemonic, Error> {
 		let nb_words = s.split_whitespace().count();
-		if nb_words < MIN_NB_WORDS || nb_words % 6 != 0 || nb_words > MAX_NB_WORDS {
+		if is_invalid_word_count(nb_words) {
 			return Err(Error::BadWordCount(nb_words));
 		}
 
@@ -556,6 +556,10 @@ impl str::FromStr for Mnemonic {
 			Mnemonic::parse_normalized(s)
 		}
 	}
+}
+
+fn is_invalid_word_count(word_count: usize) -> bool {
+	word_count < MIN_NB_WORDS || word_count % 3 != 0 || word_count > MAX_NB_WORDS
 }
 
 #[cfg(test)]
