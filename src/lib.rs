@@ -609,6 +609,14 @@ mod tests {
 		let _ = Mnemonic::generate_in_with(&mut rand::thread_rng(), Language::English, 24).unwrap();
 	}
 
+	#[cfg(feature = "rand")]
+	#[test]
+	fn test_generate_word_counts() {
+		for word_count in [12, 15, 18, 21, 24].iter() {
+			let _ = Mnemonic::generate(*word_count).unwrap();
+		}
+	}
+
 	#[test]
 	fn test_vectors_english() {
 		// These vectors are tuples of
