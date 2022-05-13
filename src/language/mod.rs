@@ -82,7 +82,7 @@ impl Language {
 
 	/// The word list for this language.
 	#[inline]
-	pub(crate) fn word_list(self) -> &'static [&'static str; 2048] {
+	pub fn word_list(self) -> &'static [&'static str; 2048] {
 		match self {
 			Language::English => &english::WORDS,
 			#[cfg(feature = "chinese-simplified")]
@@ -146,7 +146,7 @@ impl Language {
 
 	/// Get the index of the word in the word list.
 	#[inline]
-	pub(crate) fn find_word(self, word: &str) -> Option<u16> {
+	pub fn find_word(self, word: &str) -> Option<u16> {
 		self.word_list().iter().position(|w| *w == word).map(|i| i as u16)
 	}
 }
