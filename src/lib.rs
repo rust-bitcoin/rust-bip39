@@ -56,7 +56,7 @@ use unicode_normalization::UnicodeNormalization;
 #[cfg(feature = "zeroize")]
 extern crate zeroize;
 #[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[macro_use]
 mod internal_macros;
@@ -157,7 +157,7 @@ impl error::Error for Error {}
 ///
 /// Supported number of words are 12, 18 and 24.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "zeroize", derive(Zeroize), zeroize(drop))]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct Mnemonic {
 	/// The language the mnemonic.
 	lang: Language,
