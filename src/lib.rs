@@ -542,10 +542,8 @@ impl Mnemonic {
 			let potential_mnemonic = format!("{} {}", words, word);
 			match Mnemonic::parse_in_normalized(language, &potential_mnemonic) {
 				Ok(mnemonic) => return Ok(mnemonic),
-				Err(e) => match e {
-					Error::InvalidChecksum => {}, // Keep searching.
-					_ => return Err(e)
-				}
+				Err(Error::InvalidChecksum) => {}, // Keep searching.
+				Err(e) => return Err(e)
 			}
 		}
 		Err(Error::InvalidChecksum)
@@ -1061,10 +1059,10 @@ mod tests {
 				"hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay",
 				"balance"
 			),
-                        (
+			(
 				"あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん",
-                                "あおぞら"
-                        )
+				"あおぞら"
+			)
 		];
 
 		for vector in &vectors {
