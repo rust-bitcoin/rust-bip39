@@ -40,7 +40,7 @@ all-languages = [
 ]
 
 [dependencies]
-bitcoin_hashes = { version = "0.9.4", default-features = false }
+bitcoin_hashes = { version = "0.11.0", default-features = false }
 rand_core = "0.4.0"
 
 unicode-normalization = { version = "=0.1.9", optional = true }
@@ -49,5 +49,5 @@ serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
 rand = { version = "0.6.0", optional = false }
-bitcoin_hashes = "0.9.4" # enable default features for test
+bitcoin_hashes = "0.11.0" # enable default features for test
 
