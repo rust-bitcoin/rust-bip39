@@ -13,8 +13,6 @@
 
 //! # BIP39 Mnemonic Codes
 //!
-//! We currently don't implement seed generation from the phrase.
-//!
 //! https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 //!
 
