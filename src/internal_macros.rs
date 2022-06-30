@@ -47,7 +47,7 @@ macro_rules! serde_string_impl {
 		}
 
 		#[cfg(feature = "serde")]
-		impl<'de> $crate::serde::Serialize for $name {
+		impl $crate::serde::Serialize for $name {
 			fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 			where
 				S: $crate::serde::Serializer,
