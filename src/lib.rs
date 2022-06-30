@@ -372,7 +372,7 @@ impl Mnemonic {
 			}
 		}
 
-		return Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)));
+		Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)))
 	}
 
 	/// Determine the language of the mnemonic.
