@@ -883,13 +883,13 @@ mod tests {
 	#[test]
 	fn test_invalid_entropy() {
 		//between 128 and 256 bits, but not divisible by 32
-		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 17]), Err(Error::BadEntropyBitCount(136)));
+		assert_eq!(Mnemonic::from_entropy(&[b'x'; 17]), Err(Error::BadEntropyBitCount(136)));
 
 		//less than 128 bits
-		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 4]), Err(Error::BadEntropyBitCount(32)));
+		assert_eq!(Mnemonic::from_entropy(&[b'x'; 4]), Err(Error::BadEntropyBitCount(32)));
 
 		//greater than 256 bits
-		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
+		assert_eq!(Mnemonic::from_entropy(&[b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
 	}
 
 	#[cfg(all(feature = "japanese", feature = "std"))]
