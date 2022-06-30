@@ -220,7 +220,7 @@ mod tests {
 			let mut digest = sha256::Hash::engine();
 			for (_idx, word) in lang.word_list().iter().enumerate() {
 				#[cfg(feature = "std")]
-				assert!(::unicode_normalization::is_nfkd(&word));
+				assert!(::unicode_normalization::is_nfkd(word));
 				digest.input(word.as_bytes());
 				digest.input("\n".as_bytes());
 			}

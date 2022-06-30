@@ -207,7 +207,7 @@ impl Mnemonic {
 			return Err(Error::BadEntropyBitCount(nb_bits));
 		}
 
-		let check = sha256::Hash::hash(&entropy);
+		let check = sha256::Hash::hash(entropy);
 		let mut bits = [false; MAX_ENTROPY_BITS + MAX_CHECKSUM_BITS];
 		for i in 0..nb_bytes {
 			for j in 0..8 {
@@ -789,9 +789,9 @@ mod tests {
 		];
 
 		for vector in &test_vectors {
-			let entropy = Vec::<u8>::from_hex(&vector.0).unwrap();
+			let entropy = Vec::<u8>::from_hex(vector.0).unwrap();
 			let mnemonic_str = vector.1;
-			let seed = Vec::<u8>::from_hex(&vector.2).unwrap();
+			let seed = Vec::<u8>::from_hex(vector.2).unwrap();
 
 			let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
 
@@ -1050,10 +1050,10 @@ mod tests {
 		];
 
 		for vector in &vectors {
-			let entropy = Vec::<u8>::from_hex(&vector.0).unwrap();
+			let entropy = Vec::<u8>::from_hex(vector.0).unwrap();
 			let mnemonic_str = vector.1;
 			let passphrase = vector.2;
-			let seed = Vec::<u8>::from_hex(&vector.3).unwrap();
+			let seed = Vec::<u8>::from_hex(vector.3).unwrap();
 
 			let mnemonic = Mnemonic::from_entropy_in(Language::Japanese, &entropy).unwrap();
 

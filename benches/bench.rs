@@ -38,7 +38,7 @@ const LANG: Language = Language::Spanish;
 #[bench]
 fn validate(b: &mut Bencher) {
 	let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
-	let mnemonic = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
+	let mnemonic = Mnemonic::from_entropy_in(LANG, entropy).unwrap();
 	assert_eq!(mnemonic.word_count(), 24);
 	let phrase = mnemonic.to_string();
 
@@ -52,7 +52,7 @@ fn from_entropy(b: &mut Bencher) {
 	let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
 
 	b.iter(|| {
-		let _ = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
+		let _ = Mnemonic::from_entropy_in(LANG, entropy).unwrap();
 	});
 }
 
@@ -66,7 +66,7 @@ fn new_mnemonic(b: &mut Bencher) {
 #[bench]
 fn to_seed(b: &mut Bencher) {
 	let entropy = "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f".as_bytes();
-	let m = Mnemonic::from_entropy_in(LANG, &entropy).unwrap();
+	let m = Mnemonic::from_entropy_in(LANG, entropy).unwrap();
 
 	b.iter(|| {
 		let _ = m.to_seed("");
