@@ -328,7 +328,7 @@ impl Mnemonic {
 		{
 			// Start scope to drop first_word so that words can be reborrowed later.
 			let first_word = words.peek().ok_or(Error::BadWordCount(0))?;
-			if first_word.len() == 0 {
+			if first_word.is_empty() {
 				return Err(Error::BadWordCount(0));
 			}
 
