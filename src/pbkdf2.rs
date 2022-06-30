@@ -1,6 +1,6 @@
 use bitcoin_hashes::{hmac, sha512, Hash, HashEngine};
 
-const SALT_PREFIX: &'static str = "mnemonic";
+const SALT_PREFIX: &str = "mnemonic";
 
 /// Calculate the binary size of the mnemonic.
 fn mnemonic_byte_len<M>(mnemonic: M) -> usize
