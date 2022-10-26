@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+# v1.1.0
+
+- Add optional [zeroize](https://docs.rs/zeroize/latest/zeroize/) support
+- Allow word count multiples of three (previously was six)
+- Make word list public
+
 # v1.0.1
 
 - Add `Mnemonic::language` getter.
