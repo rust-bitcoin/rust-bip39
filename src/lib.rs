@@ -153,7 +153,7 @@ impl error::Error for Error {}
 /// mnemonic from all the supported languages. (Languages have to be explicitly enabled using
 /// the Cargo features.)
 ///
-/// Supported number of words are 12, 18 and 24.
+/// Supported number of words are 12, 15, 18, 21, and 24.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct Mnemonic {
