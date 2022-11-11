@@ -1,0 +1,84 @@
+on: [push, pull_request]
+
+name: Continuous integration
+
+jobs:
+  Tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - stable
+          - beta
+          - 1.29.0
+        features:
+          - default
+          - all-languages
+          - default,rand,all-languages
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+      - name: Building
+        run: cargo build --features ${{ matrix.features }} --no-default-features
+      - name: Running tests
+        run: cargo test --features ${{ matrix.features }} --no-default-features
+
+  Benches:
+    name: Benches
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - rand
+          - rand,japanese
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+      - name: Running benches
+        run: cargo bench --features ${{ matrix.features }}
+
+  Clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+      - name: Running clippy
+        run: cargo clippy --all-features -- -Dwarnings -Aclippy::needless_range_loop -Aclippy::ptr_arg -Aclippy::manual-range-contains
+
+  Format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt
+      - name: Checking format
+        run: cargo fmt --all -- --config format_code_in_doc_comments=true --check
