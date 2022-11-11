@@ -14,7 +14,6 @@
 //! # BIP39 Mnemonic Codes
 //!
 //! https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
-//!
 
 #![deny(non_upper_case_globals)]
 #![deny(non_camel_case_types)]
@@ -180,7 +179,7 @@ impl Mnemonic {
 	/// can be avoided for languages without special UTF8 characters.
 	#[inline]
 	#[cfg(feature = "std")]
-	fn normalize_utf8_cow<'a>(cow: &mut Cow<'a, str>) {
+	fn normalize_utf8_cow(cow: &mut Cow<str>) {
 		let is_nfkd = unicode_normalization::is_nfkd_quick(cow.as_ref().chars());
 		if is_nfkd != unicode_normalization::IsNormalized::Yes {
 			*cow = Cow::Owned(cow.as_ref().nfkd().to_string());
@@ -204,7 +203,7 @@ impl Mnemonic {
 			return Err(Error::BadEntropyBitCount(nb_bits));
 		}
 
-		let check = sha256::Hash::hash(&entropy);
+		let check = sha256::Hash::hash(entropy);
 		let mut bits = [false; MAX_ENTROPY_BITS + MAX_CHECKSUM_BITS];
 		for i in 0..nb_bytes {
 			for j in 0..8 {
@@ -229,7 +228,7 @@ impl Mnemonic {
 
 		Ok(Mnemonic {
 			lang: language,
-			words: words,
+			words,
 		})
 	}
 
@@ -249,7 +248,7 @@ impl Mnemonic {
 	/// extern crate rand;
 	/// extern crate bip39;
 	///
-	/// use bip39::{Mnemonic, Language};
+	/// use bip39::{Language, Mnemonic};
 	///
 	/// let mut rng = rand::thread_rng();
 	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
@@ -280,7 +279,7 @@ impl Mnemonic {
 	/// ```
 	/// extern crate bip39;
 	///
-	/// use bip39::{Mnemonic, Language};
+	/// use bip39::{Language, Mnemonic};
 	///
 	/// let m = Mnemonic::generate_in(Language::English, 24).unwrap();
 	/// ```
@@ -297,7 +296,7 @@ impl Mnemonic {
 	/// ```
 	/// extern crate bip39;
 	///
-	/// use bip39::{Mnemonic,};
+	/// use bip39::Mnemonic;
 	///
 	/// let m = Mnemonic::generate(24).unwrap();
 	/// ```
@@ -325,7 +324,7 @@ impl Mnemonic {
 		{
 			// Start scope to drop first_word so that words can be reborrowed later.
 			let first_word = words.peek().ok_or(Error::BadWordCount(0))?;
-			if first_word.len() == 0 {
+			if first_word.is_empty() {
 				return Err(Error::BadWordCount(0));
 			}
 
@@ -369,7 +368,7 @@ impl Mnemonic {
 			}
 		}
 
-		return Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)));
+		Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)))
 	}
 
 	/// Determine the language of the mnemonic.
@@ -430,7 +429,7 @@ impl Mnemonic {
 
 		Ok(Mnemonic {
 			lang: language,
-			words: words,
+			words,
 		})
 	}
 
@@ -448,7 +447,7 @@ impl Mnemonic {
 	) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
-		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
+		Mnemonic::parse_in_normalized(language, cow.as_ref())
 	}
 
 	/// Parse a mnemonic and detect the language from the enabled languages.
@@ -463,7 +462,7 @@ impl Mnemonic {
 			Mnemonic::language_of(cow.as_ref())?
 		};
 
-		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
+		Mnemonic::parse_in_normalized(language, cow.as_ref())
 	}
 
 	/// Get the number of words in the mnemonic.
@@ -757,9 +756,9 @@ mod tests {
 		];
 
 		for vector in &test_vectors {
-			let entropy = Vec::<u8>::from_hex(&vector.0).unwrap();
+			let entropy = Vec::<u8>::from_hex(vector.0).unwrap();
 			let mnemonic_str = vector.1;
-			let seed = Vec::<u8>::from_hex(&vector.2).unwrap();
+			let seed = Vec::<u8>::from_hex(vector.2).unwrap();
 
 			let mnemonic = Mnemonic::from_entropy(&entropy).unwrap();
 
@@ -851,13 +850,13 @@ mod tests {
 	#[test]
 	fn test_invalid_entropy() {
 		//between 128 and 256 bits, but not divisible by 32
-		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 17]), Err(Error::BadEntropyBitCount(136)));
+		assert_eq!(Mnemonic::from_entropy(&[b'x'; 17]), Err(Error::BadEntropyBitCount(136)));
 
 		//less than 128 bits
-		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 4]), Err(Error::BadEntropyBitCount(32)));
+		assert_eq!(Mnemonic::from_entropy(&[b'x'; 4]), Err(Error::BadEntropyBitCount(32)));
 
 		//greater than 256 bits
-		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
+		assert_eq!(Mnemonic::from_entropy(&[b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
 	}
 
 	#[cfg(all(feature = "japanese", feature = "std"))]

@@ -1,2 +1,5 @@
 hard_tabs = true
 use_small_heuristics = "Off"
+ignore = [
+    "src/language",
+]
