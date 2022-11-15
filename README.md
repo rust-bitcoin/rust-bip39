@@ -30,3 +30,4 @@ Use the `all-languages` feature to enable all languages.
 
 This crate supports Rust v1.29 and up and works with `no_std`.
 
+If you enable the `zeroize` feature the MSRV becomes 1.51
