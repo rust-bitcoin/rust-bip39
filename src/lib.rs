@@ -120,7 +120,12 @@ impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match *self {
 			Error::BadWordCount(c) => {
-				write!(f, "mnemonic has a word count that is not a multiple of 6: {}", c,)
+				write!(
+					f,
+					"mnemonic has an invalid word count: {}. Word count must be 12, 15, 18, 21, \
+					or 24",
+					c
+				)
 			}
 			Error::UnknownWord(i) => write!(f, "mnemonic contains an unknown word (word {})", i,),
 			Error::BadEntropyBitCount(c) => write!(
