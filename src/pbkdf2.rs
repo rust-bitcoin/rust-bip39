@@ -1,10 +1,11 @@
 use bitcoin_hashes::{hmac, sha512, Hash, HashEngine};
 
-const SALT_PREFIX: &'static str = "mnemonic";
+const SALT_PREFIX: &str = "mnemonic";
 
 /// Calculate the binary size of the mnemonic.
 fn mnemonic_byte_len<M>(mnemonic: M) -> usize
-	where M: Iterator<Item = &'static str> + Clone,
+where
+	M: Iterator<Item = &'static str> + Clone,
 {
 	let mut len = 0;
 	for (i, word) in mnemonic.enumerate() {
@@ -18,7 +19,8 @@ fn mnemonic_byte_len<M>(mnemonic: M) -> usize
 
 /// Wrote the mnemonic in binary form into the hash engine.
 fn mnemonic_write_into<M>(mnemonic: M, engine: &mut sha512::HashEngine)
-	where M: Iterator<Item = &'static str> + Clone,
+where
+	M: Iterator<Item = &'static str> + Clone,
 {
 	for (i, word) in mnemonic.enumerate() {
 		if i > 0 {
@@ -32,7 +34,8 @@ fn mnemonic_write_into<M>(mnemonic: M, engine: &mut sha512::HashEngine)
 /// We need a special method because we can't allocate a new byte
 /// vector for the entire serialized mnemonic.
 fn create_hmac_engine<M>(mnemonic: M) -> hmac::HmacEngine<sha512::Hash>
-	where M: Iterator<Item = &'static str> + Clone,
+where
+	M: Iterator<Item = &'static str> + Clone,
 {
 	// Inner code is borrowed from the bitcoin_hashes::hmac::HmacEngine::new method.
 	let mut ipad = [0x36u8; 128];
@@ -58,8 +61,8 @@ fn create_hmac_engine<M>(mnemonic: M) -> hmac::HmacEngine<sha512::Hash>
 		let mut cursor = 0;
 		for (i, word) in mnemonic.enumerate() {
 			if i > 0 {
-				ipad[cursor] ^= ' ' as u8;
-				opad[cursor] ^= ' ' as u8;
+				ipad[cursor] ^= b' ';
+				opad[cursor] ^= b' ';
 				cursor += 1;
 			}
 			for (b_i, b_h) in ipad.iter_mut().skip(cursor).zip(word.as_bytes()) {
@@ -82,9 +85,10 @@ fn create_hmac_engine<M>(mnemonic: M) -> hmac::HmacEngine<sha512::Hash>
 #[inline]
 fn u32_to_array_be(val: u32) -> [u8; 4] {
 	let mut res = [0; 4];
-	for i in 0..4 {
-		res[i] = ((val >> (4 - i - 1) * 8) & 0xff) as u8;
+	for (i, item) in res.iter_mut().enumerate() {
+		*item = ((val >> ((4 - i - 1) * 8)) & 0xff) as u8;
 	}
+
 	res
 }
 
@@ -97,7 +101,8 @@ fn xor(res: &mut [u8], salt: &[u8]) {
 
 /// PBKDF2-HMAC-SHA512 implementation using bitcoin_hashes.
 pub(crate) fn pbkdf2<M>(mnemonic: M, unprefixed_salt: &[u8], c: usize, res: &mut [u8])
-	where M: Iterator<Item = &'static str> + Clone,
+where
+	M: Iterator<Item = &'static str> + Clone,
 {
 	let prf = create_hmac_engine(mnemonic);
 

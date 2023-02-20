@@ -175,7 +175,7 @@ impl Mnemonic {
 	/// can be avoided for languages without special UTF8 characters.
 	#[inline]
 	#[cfg(feature = "std")]
-	fn normalize_utf8_cow<'a>(cow: &mut Cow<'a, str>) {
+	fn normalize_utf8_cow(cow: &mut Cow<str>) {
 		let is_nfkd = unicode_normalization::is_nfkd_quick(cow.as_ref().chars());
 		if is_nfkd != unicode_normalization::IsNormalized::Yes {
 			*cow = Cow::Owned(cow.as_ref().nfkd().to_string());
@@ -184,7 +184,7 @@ impl Mnemonic {
 
 	/// Create a new [Mnemonic] in the specified language from the given entropy.
 	/// Entropy must be a multiple of 32 bits (4 bytes) and 128-256 bits in length.
-	pub fn from_entropy_in(language: Language, entropy: &[u8]) -> Result<Mnemonic, Error> {
+	pub fn from_entropy_in(lang: Language, entropy: &[u8]) -> Result<Mnemonic, Error> {
 		const MAX_ENTROPY_BITS: usize = 256;
 		const MIN_ENTROPY_BITS: usize = 128;
 		const MAX_CHECKSUM_BITS: usize = 8;
@@ -195,11 +195,11 @@ impl Mnemonic {
 		if nb_bits % 32 != 0 {
 			return Err(Error::BadEntropyBitCount(nb_bits));
 		}
-		if nb_bits < MIN_ENTROPY_BITS || nb_bits > MAX_ENTROPY_BITS {
+		if !(MIN_ENTROPY_BITS..=MAX_ENTROPY_BITS).contains(&nb_bits) {
 			return Err(Error::BadEntropyBitCount(nb_bits));
 		}
 
-		let check = sha256::Hash::hash(&entropy);
+		let check = sha256::Hash::hash(entropy);
 		let mut bits = [false; MAX_ENTROPY_BITS + MAX_CHECKSUM_BITS];
 		for i in 0..nb_bytes {
 			for j in 0..8 {
@@ -223,8 +223,8 @@ impl Mnemonic {
 		}
 
 		Ok(Mnemonic {
-			lang: language,
-			words: words,
+			lang,
+			words,
 		})
 	}
 
@@ -320,7 +320,7 @@ impl Mnemonic {
 		{
 			// Start scope to drop first_word so that words can be reborrowed later.
 			let first_word = words.peek().ok_or(Error::BadWordCount(0))?;
-			if first_word.len() == 0 {
+			if first_word.is_empty() {
 				return Err(Error::BadWordCount(0));
 			}
 
@@ -364,7 +364,7 @@ impl Mnemonic {
 			}
 		}
 
-		return Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)));
+		Err(Error::AmbiguousLanguages(AmbiguousLanguages(possible)))
 	}
 
 	/// Determine the language of the mnemonic.
@@ -382,7 +382,7 @@ impl Mnemonic {
 	}
 
 	/// Parse a mnemonic in normalized UTF8 in the given language.
-	pub fn parse_in_normalized(language: Language, s: &str) -> Result<Mnemonic, Error> {
+	pub fn parse_in_normalized(lang: Language, s: &str) -> Result<Mnemonic, Error> {
 		let nb_words = s.split_whitespace().count();
 		if is_invalid_word_count(nb_words) {
 			return Err(Error::BadWordCount(nb_words));
@@ -396,7 +396,7 @@ impl Mnemonic {
 		let mut bits = [false; MAX_NB_WORDS * 11];
 
 		for (i, word) in s.split_whitespace().enumerate() {
-			let idx = language.find_word(word).ok_or(Error::UnknownWord(i))?;
+			let idx = lang.find_word(word).ok_or(Error::UnknownWord(i))?;
 
 			words[i] = idx;
 
@@ -424,8 +424,8 @@ impl Mnemonic {
 		}
 
 		Ok(Mnemonic {
-			lang: language,
-			words: words,
+			lang,
+			words,
 		})
 	}
 
@@ -443,7 +443,8 @@ impl Mnemonic {
 	) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
-		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
+
+		Mnemonic::parse_in_normalized(language, cow.as_ref())
 	}
 
 	/// Parse a mnemonic and detect the language from the enabled languages.
@@ -458,7 +459,7 @@ impl Mnemonic {
 			Mnemonic::language_of(cow.as_ref())?
 		};
 
-		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
+		Mnemonic::parse_in_normalized(language, cow.as_ref())
 	}
 
 	/// Get the number of words in the mnemonic.
