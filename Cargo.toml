@@ -11,10 +11,6 @@ keywords = [ "crypto", "bitcoin", "bip39", "mnemonic" ]
 readme = "README.md"
 edition = "2018"
 
-[lib]
-name = "bip39"
-path = "src/lib.rs"
-
 [features]
 default = [ "std" ]
 std = [ "unicode-normalization", "serde/std" ]
