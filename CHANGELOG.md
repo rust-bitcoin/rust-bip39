@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+# v2.0.0
+
+- Set Rust edition to 2018
+- Make `rand` and `rand_core` dependencies more flexible
+  - Increase maximum version in constraint
+  - Make `rand_core` optional too
+  - Expose both crates
+- Bump MSRV to 1.41.1
+
 # v1.2.0
 
 - Add `Mnemonic::parse_in_normalized_without_checksum_check`
