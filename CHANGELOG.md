@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+# v1.1.0
+
+- Add zerioze support through a feature (MSRV 1.51)
+- Allow word count multiples of 3 instead of 6
+- Add support for no-std usage
+- Expose `Language::word_list` and `Language::find_word` methods
+
 # v1.0.1
 
 - Add `Mnemonic::language` getter.
