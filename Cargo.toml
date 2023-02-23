@@ -9,6 +9,7 @@ documentation = "https://docs.rs/bip39/"
 description = "Library for BIP-39 Bitcoin mnemonic codes"
 keywords = [ "crypto", "bitcoin", "bip39", "mnemonic" ]
 readme = "README.md"
+edition = "2018"
 
 [lib]
 name = "bip39"
