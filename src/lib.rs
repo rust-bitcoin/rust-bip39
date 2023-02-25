@@ -434,6 +434,28 @@ impl Mnemonic {
 		})
 	}
 
+	/// Parse a mnemonic in normalized UTF8 in the given language without checksum check.
+	pub fn parse_without_checksum_check(language: Language, s: &str) -> Result<Mnemonic, Error> {
+		let nb_words = s.split_whitespace().count();
+		if is_invalid_word_count(nb_words) {
+			return Err(Error::BadWordCount(nb_words));
+		}
+
+		// Here we will store the eventual words.
+		let mut words = [EOF; MAX_NB_WORDS];
+
+		for (i, word) in s.split_whitespace().enumerate() {
+			let idx = language.find_word(word).ok_or(Error::UnknownWord(i))?;
+
+			words[i] = idx;
+		}
+
+		Ok(Mnemonic {
+			lang: language,
+			words: words,
+		})
+	}
+
 	/// Parse a mnemonic in normalized UTF8.
 	pub fn parse_normalized(s: &str) -> Result<Mnemonic, Error> {
 		let lang = Mnemonic::language_of(s)?;
