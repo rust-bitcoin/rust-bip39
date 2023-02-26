@@ -435,7 +435,14 @@ impl Mnemonic {
 	}
 
 	/// Parse a mnemonic in normalized UTF8 in the given language without checksum check.
-	pub fn parse_without_checksum_check(language: Language, s: &str) -> Result<Mnemonic, Error> {
+	///
+	/// It is advised to use this method together with the utility methods
+	/// - [Mnemonic::normalize_utf8_cow]
+	/// - [Mnemonic::language_of]
+	pub fn parse_in_normalized_without_checksum_check(
+		language: Language,
+		s: &str,
+	) -> Result<Mnemonic, Error> {
 		let nb_words = s.split_whitespace().count();
 		if is_invalid_word_count(nb_words) {
 			return Err(Error::BadWordCount(nb_words));
