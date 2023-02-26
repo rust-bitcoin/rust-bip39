@@ -14,6 +14,7 @@ edition = "2018"
 [features]
 default = [ "std" ]
 std = [ "unicode-normalization", "serde/std" ]
+rand = [ "crate_rand", "rand_core" ]
 
 # Note: English is the standard for bip39 so always included
 chinese-simplified = []
@@ -37,8 +38,8 @@ all-languages = [
 ]
 
 [dependencies]
-rand_core = ">=0.4.0, <0.7.0"
-rand = { version = ">=0.6.0, <0.9.0", optional = true }
+rand_core = { version = ">=0.4.0, <0.7.0", optional = true }
+crate_rand = { package = "rand", version = ">=0.6.0, <0.9.0", optional = true }
 serde = { version = "1.0", default-features = false, features = [ "alloc" ], optional = true }
 
 # Enabling this feature raises the MSRV to 1.51
@@ -49,6 +50,7 @@ bitcoin_hashes = { version = "0.11.0", default-features = false }
 unicode-normalization = { version = "=0.1.9", optional = true }
 
 [dev-dependencies]
-rand = { version = "0.8.5", optional = false }
+rand_core = { version = "0.6.4", optional = false }
+crate_rand = { package = "rand", version = "0.8.5", optional = false }
 bitcoin_hashes = "0.11.0" # enable default features for test
 
