@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+# v1.2.0
+
+- Add `Mnemonic::parse_in_normalized_without_checksum_check`
+- Make public `Mnemonic::normalize_utf8_cow`
+
 # v1.1.0
 
 - Add zerioze support through a feature (MSRV 1.51)
