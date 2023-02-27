@@ -28,6 +28,8 @@
 #[cfg(any(test, feature = "std"))]
 pub extern crate core;
 
+extern crate alloc;
+
 extern crate bitcoin_hashes;
 extern crate rand_core;
 
