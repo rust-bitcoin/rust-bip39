@@ -31,13 +31,14 @@ pub extern crate core;
 extern crate alloc;
 
 extern crate bitcoin_hashes;
-extern crate rand_core;
 
 #[cfg(feature = "std")]
 extern crate unicode_normalization;
 
+#[cfg(feature = "rand_core")]
+pub extern crate rand_core;
 #[cfg(feature = "rand")]
-extern crate rand;
+pub extern crate crate_rand as rand;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
@@ -248,14 +249,14 @@ impl Mnemonic {
 	/// Example:
 	///
 	/// ```
-	/// extern crate rand;
 	/// extern crate bip39;
 	///
 	/// use bip39::{Mnemonic, Language};
 	///
-	/// let mut rng = rand::thread_rng();
+	/// let mut rng = bip39::rand::thread_rng();
 	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
 	/// ```
+	#[cfg(feature = "rand_core")]
 	pub fn generate_in_with<R>(
 		rng: &mut R,
 		language: Language,
