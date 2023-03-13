@@ -249,8 +249,6 @@ impl Mnemonic {
 	/// Example:
 	///
 	/// ```
-	/// extern crate bip39;
-	///
 	/// use bip39::{Mnemonic, Language};
 	///
 	/// let mut rng = bip39::rand::thread_rng();
@@ -281,8 +279,6 @@ impl Mnemonic {
 	/// Example:
 	///
 	/// ```
-	/// extern crate bip39;
-	///
 	/// use bip39::{Mnemonic, Language};
 	///
 	/// let m = Mnemonic::generate_in(Language::English, 24).unwrap();
@@ -298,9 +294,7 @@ impl Mnemonic {
 	/// Example:
 	///
 	/// ```
-	/// extern crate bip39;
-	///
-	/// use bip39::{Mnemonic,};
+	/// use bip39::Mnemonic;
 	///
 	/// let m = Mnemonic::generate(24).unwrap();
 	/// ```
