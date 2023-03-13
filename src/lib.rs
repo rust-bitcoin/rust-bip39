@@ -167,7 +167,7 @@ impl error::Error for Error {}
 pub struct Mnemonic {
 	/// The language the mnemonic.
 	lang: Language,
-	/// The indiced of the words.
+	/// The indices of the words.
 	/// Mnemonics with less than the max nb of words are terminated with EOF.
 	words: [u16; MAX_NB_WORDS],
 }
