@@ -309,7 +309,7 @@ impl Mnemonic {
 		self.lang
 	}
 
-	/// Returns an iterator over the words of the [`Mnemonic`].
+	/// Returns an iterator over the words of the [Mnemonic].
 	///
 	/// # Examples
 	///
@@ -325,13 +325,32 @@ impl Mnemonic {
 	/// ```
 	pub fn words(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
 		let list = self.lang.word_list();
-		self.words.iter().take_while(|w| **w != EOF).map(move |w| list[*w as usize])
+		self.word_indices().map(move |i| list[i])
 	}
 
-	/// Returns an iterator over the words of the [`Mnemonic`].
+	/// Returns an iterator over the words of the [Mnemonic].
 	#[deprecated(note = "Use Mnemonic::words instead")]
 	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
 		self.words()
+	}
+
+	/// Returns an iterator over [Mnemonic] word indices.
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use bip39::{Language, Mnemonic};
+	///
+	/// let list = Language::English.word_list();
+	/// let mnemonic = Mnemonic::from_entropy(&[0; 32]).unwrap();
+	/// for i in mnemonic.word_indices() {
+	/// 	println!("{} ({})", list[i], i);
+	/// }
+	/// ```
+	pub fn word_indices(&self) -> impl Iterator<Item = usize> + Clone + '_ {
+		self.words.iter().take_while(|&&w| w != EOF).map(|w| *w as usize)
 	}
 
 	/// Determine the language of the mnemonic as a word iterator.
@@ -514,7 +533,7 @@ impl Mnemonic {
 
 	/// Get the number of words in the mnemonic.
 	pub fn word_count(&self) -> usize {
-		self.words.iter().take_while(|w| **w != EOF).count()
+		self.word_indices().count()
 	}
 
 	/// Convert to seed bytes with a passphrase in normalized UTF8.
