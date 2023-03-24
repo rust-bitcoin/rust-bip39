@@ -532,7 +532,7 @@ impl Mnemonic {
 
 	/// Convert the mnemonic back to the entropy used to generate it.
 	/// The return value is a byte array and the size.
-	/// Use [Mnemonic::to_entropy] (needs `std`) to get a [Vec<u8>].
+	/// Use [Mnemonic::to_entropy] (needs `std`) to get a [`Vec<u8>`].
 	pub fn to_entropy_array(&self) -> ([u8; 33], usize) {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
