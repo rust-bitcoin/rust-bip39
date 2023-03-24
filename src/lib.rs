@@ -13,7 +13,7 @@
 
 //! # BIP39 Mnemonic Codes
 //!
-//! https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
+//! Library crate implementing [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki)
 //!
 
 #![deny(non_upper_case_globals)]
