@@ -13,7 +13,7 @@
 
 //! # BIP39 Mnemonic Codes
 //!
-//! https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
+//! Library crate implementing [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki)
 //!
 
 #![deny(non_upper_case_globals)]
@@ -24,6 +24,7 @@
 #![deny(unused_imports)]
 #![deny(missing_docs)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(any(test, feature = "std"))]
 pub extern crate core;
@@ -531,7 +532,7 @@ impl Mnemonic {
 
 	/// Convert the mnemonic back to the entropy used to generate it.
 	/// The return value is a byte array and the size.
-	/// Use [Mnemonic::to_entropy] (needs `std`) to get a [Vec<u8>].
+	/// Use [Mnemonic::to_entropy] (needs `std`) to get a [`Vec<u8>`].
 	pub fn to_entropy_array(&self) -> ([u8; 33], usize) {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
