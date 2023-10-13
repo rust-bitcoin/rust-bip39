@@ -15,6 +15,7 @@ use bip39::*;
 	feature = "italian",
 	feature = "japanese",
 	feature = "korean",
+	feature = "portuguese",
 	feature = "spanish"
 )))]
 const LANG: Language = Language::English;
@@ -32,6 +33,8 @@ const LANG: Language = Language::Italian;
 const LANG: Language = Language::Japanese;
 #[cfg(feature = "korean")]
 const LANG: Language = Language::Korean;
+#[cfg(feature = "portuguese")]
+const LANG: Language = Language::Portuguese;
 #[cfg(feature = "spanish")]
 const LANG: Language = Language::Spanish;
 
