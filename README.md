@@ -23,6 +23,7 @@ Use the `all-languages` feature to enable all languages.
 - Italian (`italian`)
 - Japanese (`japanese`)
 - Korean (`korean`)
+- Portuguese (`portuguese`)
 - Spanish (`spanish`)
 
 
