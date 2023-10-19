@@ -337,7 +337,7 @@ impl Mnemonic {
 	}
 
 	/// Returns an iterator over the words of the [Mnemonic].
-	#[deprecated(note = "Use Mnemonic::words instead")]
+	#[deprecated(since = "2.1.0", note = "Use Mnemonic::words instead")]
 	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
 		self.words()
 	}
