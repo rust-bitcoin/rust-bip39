@@ -92,14 +92,14 @@ pub struct AmbiguousLanguages([bool; language::MAX_NB_LANGUAGES]);
 
 impl AmbiguousLanguages {
 	/// Presents the possible languages in the form of a slice of booleans
-	/// that correspond to the occurrences in [Language::all()].
+	/// that correspond to the occurrences in [Language::ALL].
 	pub fn as_bools(&self) -> &[bool; language::MAX_NB_LANGUAGES] {
 		&self.0
 	}
 
 	/// An iterator over the possible languages.
 	pub fn iter(&self) -> impl Iterator<Item = Language> + '_ {
-		Language::all().iter().enumerate().filter(move |(i, _)| self.0[*i]).map(|(_, l)| *l)
+		Language::ALL.iter().enumerate().filter(move |(i, _)| self.0[*i]).map(|(_, l)| *l)
 	}
 
 	/// Returns a vector of the possible languages.
@@ -365,7 +365,7 @@ impl Mnemonic {
 	/// See documentation on [Mnemonic::language_of] for more info.
 	fn language_of_iter<'a, W: Iterator<Item = &'a str>>(words: W) -> Result<Language, Error> {
 		let mut words = words.peekable();
-		let langs = Language::all();
+		let langs = Language::ALL;
 		{
 			// Start scope to drop first_word so that words can be reborrowed later.
 			let first_word = words.peek().ok_or(Error::BadWordCount(0))?;
@@ -530,8 +530,8 @@ impl Mnemonic {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
 
-		let language = if Language::all().len() == 1 {
-			Language::all()[0]
+		let language = if Language::ALL.len() == 1 {
+			Language::ALL[0]
 		} else {
 			Mnemonic::language_of(cow.as_ref())?
 		};
@@ -680,7 +680,7 @@ mod tests {
 	#[cfg(feature = "rand")]
 	#[test]
 	fn test_language_of() {
-		for lang in Language::all() {
+		for lang in Language::ALL {
 			let m = Mnemonic::generate_in(*lang, 24).unwrap();
 			assert_eq!(*lang, Mnemonic::language_of_iter(m.words()).unwrap());
 			assert_eq!(
@@ -698,10 +698,10 @@ mod tests {
 		let mut present = [false; language::MAX_NB_LANGUAGES];
 		let mut present_vec = Vec::new();
 		let mut alternate = true;
-		for i in 0..Language::all().len() {
+		for i in 0..Language::ALL.len() {
 			present[i] = alternate;
 			if alternate {
-				present_vec.push(Language::all()[i]);
+				present_vec.push(Language::ALL[i]);
 			}
 			alternate = !alternate;
 		}
