@@ -24,6 +24,7 @@ french = []
 italian = []
 japanese = []
 korean = []
+portuguese = []
 spanish = []
 
 all-languages = [
@@ -34,6 +35,7 @@ all-languages = [
     "italian",
     "japanese",
     "korean",
+    "portuguese",
     "spanish"
 ]
 
@@ -50,8 +52,8 @@ bitcoin_hashes = { version = "0.11.0", default-features = false }
 unicode-normalization = { version = "=0.1.22", optional = true }
 
 [dev-dependencies]
-rand_core = { version = "0.6.4", optional = false }
-crate_rand = { package = "rand", version = "0.8.5", optional = false }
+# Enabling the "rand" feature by default to run the benches
+bip39 = { path = ".", features = ["rand"] }
 bitcoin_hashes = "0.11.0" # enable default features for test
 
 

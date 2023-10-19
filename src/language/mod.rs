@@ -15,11 +15,13 @@ mod italian;
 mod japanese;
 #[cfg(feature = "korean")]
 mod korean;
+#[cfg(feature = "portuguese")]
+mod portuguese;
 #[cfg(feature = "spanish")]
 mod spanish;
 
 /// The maximum number of languages enabled.
-pub(crate) const MAX_NB_LANGUAGES: usize = 9;
+pub(crate) const MAX_NB_LANGUAGES: usize = 10;
 
 /// Language to be used for the mnemonic phrase.
 ///
@@ -50,6 +52,9 @@ pub enum Language {
 	#[cfg(feature = "korean")]
 	/// The Korean language.
 	Korean,
+	#[cfg(feature = "portuguese")]
+	/// The Portuguese language.
+	Portuguese,
 	#[cfg(feature = "spanish")]
 	/// The Spanish language.
 	Spanish,
@@ -81,6 +86,8 @@ impl Language {
 			Language::Japanese,
 			#[cfg(feature = "korean")]
 			Language::Korean,
+			#[cfg(feature = "portuguese")]
+			Language::Portuguese,
 			#[cfg(feature = "spanish")]
 			Language::Spanish,
 		]
@@ -105,6 +112,8 @@ impl Language {
 			Language::Japanese => &japanese::WORDS,
 			#[cfg(feature = "korean")]
 			Language::Korean => &korean::WORDS,
+			#[cfg(feature = "portuguese")]
+			Language::Portuguese => &portuguese::WORDS,
 			#[cfg(feature = "spanish")]
 			Language::Spanish => &spanish::WORDS,
 		}
@@ -130,6 +139,8 @@ impl Language {
 			Language::Japanese => true,
 			#[cfg(feature = "korean")]
 			Language::Korean => true,
+			#[cfg(feature = "portuguese")]
+			Language::Portuguese => true,
 			#[cfg(feature = "spanish")]
 			Language::Spanish => true,
 		}
@@ -175,6 +186,7 @@ mod tests {
 		feature = "italian",
 		feature = "japanese",
 		feature = "korean",
+		feature = "portuguese",
 		feature = "spanish"
 	))]
 	#[test]
@@ -190,6 +202,7 @@ mod tests {
 		//! d392c49fdb700a24cd1fceb237c1f65dcc128f6b34a8aacb58b59384b5c648c2  italian.txt
 		//! 2eed0aef492291e061633d7ad8117f1a2b03eb80a29d0e4e3117ac2528d05ffd  japanese.txt
 		//! 9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60  korean.txt
+		//! 2685e9c194c82ae67e10ba59d9ea5345a23dc093e92276fc5361f6667d79cd3f  portuguese.txt
 		//! 46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b  spanish.txt
 
 		use bitcoin_hashes::{sha256, Hash, HashEngine};
@@ -212,6 +225,10 @@ mod tests {
 				Language::Japanese,
 			),
 			("9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60", Language::Korean),
+			(
+				"2685e9c194c82ae67e10ba59d9ea5345a23dc093e92276fc5361f6667d79cd3f",
+				Language::Portuguese,
+			),
 			("46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b", Language::Spanish),
 		];
 		assert_eq!(MAX_NB_LANGUAGES, checksums.len());
@@ -256,6 +273,7 @@ mod tests {
 		feature = "italian",
 		feature = "japanese",
 		feature = "korean",
+		feature = "portuguese",
 		feature = "spanish"
 	))]
 	#[test]
