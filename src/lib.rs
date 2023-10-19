@@ -309,10 +309,48 @@ impl Mnemonic {
 		self.lang
 	}
 
-	/// Get an iterator over the words.
-	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
+	/// Returns an iterator over the words of the [Mnemonic].
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use bip39::Mnemonic;
+	///
+	/// let mnemonic = Mnemonic::from_entropy(&[0; 32]).unwrap();
+	/// for (i, word) in mnemonic.words().enumerate() {
+	///     println!("{}. {}", i, word);
+	/// }
+	/// ```
+	pub fn words(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
 		let list = self.lang.word_list();
-		self.words.iter().take_while(|w| **w != EOF).map(move |w| list[*w as usize])
+		self.word_indices().map(move |i| list[i])
+	}
+
+	/// Returns an iterator over the words of the [Mnemonic].
+	#[deprecated(note = "Use Mnemonic::words instead")]
+	pub fn word_iter(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
+		self.words()
+	}
+
+	/// Returns an iterator over [Mnemonic] word indices.
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use bip39::{Language, Mnemonic};
+	///
+	/// let list = Language::English.word_list();
+	/// let mnemonic = Mnemonic::from_entropy(&[0; 32]).unwrap();
+	/// for i in mnemonic.word_indices() {
+	/// 	println!("{} ({})", list[i], i);
+	/// }
+	/// ```
+	pub fn word_indices(&self) -> impl Iterator<Item = usize> + Clone + '_ {
+		self.words.iter().take_while(|&&w| w != EOF).map(|w| *w as usize)
 	}
 
 	/// Determine the language of the mnemonic as a word iterator.
@@ -495,7 +533,7 @@ impl Mnemonic {
 
 	/// Get the number of words in the mnemonic.
 	pub fn word_count(&self) -> usize {
-		self.words.iter().take_while(|w| **w != EOF).count()
+		self.word_indices().count()
 	}
 
 	/// Convert to seed bytes with a passphrase in normalized UTF8.
@@ -505,7 +543,7 @@ impl Mnemonic {
 
 		let mut seed = [0u8; PBKDF2_BYTES];
 		pbkdf2::pbkdf2(
-			self.word_iter(),
+			self.words(),
 			normalized_passphrase.as_bytes(),
 			PBKDF2_ROUNDS,
 			&mut seed,
@@ -531,7 +569,7 @@ impl Mnemonic {
 		// We unwrap errors here because this method can only be called on
 		// values that were already previously validated.
 
-		let language = Mnemonic::language_of_iter(self.word_iter()).unwrap();
+		let language = Mnemonic::language_of_iter(self.words()).unwrap();
 
 		// Preallocate enough space for the longest possible word list
 		let mut entropy = [0; 33];
@@ -540,7 +578,7 @@ impl Mnemonic {
 		let mut remainder = 0;
 
 		let nb_words = self.word_count();
-		for word in self.word_iter() {
+		for word in self.words() {
 			let idx = language.find_word(word).expect("invalid mnemonic");
 
 			remainder |= ((idx as u32) << (32 - 11)) >> offset;
@@ -572,7 +610,7 @@ impl Mnemonic {
 
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		for (i, word) in self.word_iter().enumerate() {
+		for (i, word) in self.words().enumerate() {
 			if i > 0 {
 				f.write_str(" ")?;
 			}
@@ -612,7 +650,7 @@ mod tests {
 	fn test_language_of() {
 		for lang in Language::all() {
 			let m = Mnemonic::generate_in(*lang, 24).unwrap();
-			assert_eq!(*lang, Mnemonic::language_of_iter(m.word_iter()).unwrap());
+			assert_eq!(*lang, Mnemonic::language_of_iter(m.words()).unwrap());
 			assert_eq!(
 				*lang,
 				Mnemonic::language_of_iter(m.to_string().split_whitespace()).unwrap()
