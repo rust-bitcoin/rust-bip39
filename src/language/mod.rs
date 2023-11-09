@@ -164,7 +164,7 @@ impl Language {
 	/// Get the index of the word in the word list.
 	#[inline]
 	pub fn find_word(self, word: &str) -> Option<u16> {
-		self.word_list().iter().position(|w| *w == word).map(|i| i as u16)
+		self.word_list().binary_search(&word).map(|i| i as u16).ok()
 	}
 }
 
