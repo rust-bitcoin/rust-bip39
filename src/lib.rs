@@ -842,7 +842,7 @@ mod tests {
 				mnemonic_str
 			);
 
-			#[cfg(features = "std")]
+			#[cfg(feature = "std")]
 			{
 				assert_eq!(&mnemonic.to_string(), mnemonic_str, "failed vector: {}", mnemonic_str);
 				assert_eq!(
