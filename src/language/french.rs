@@ -1,3 +1,4 @@
+#[rustfmt::skip]
 pub const WORDS: [&str; 2048] = [
 	"abaisser",
 	"abandon",
