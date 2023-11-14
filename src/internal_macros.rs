@@ -8,9 +8,9 @@ macro_rules! serde_string_impl {
 			where
 				D: $crate::serde::de::Deserializer<'de>,
 			{
+				use alloc::string::String;
 				use core::fmt::{self, Formatter};
 				use core::str::FromStr;
-				use alloc::string::String;
 
 				struct Visitor;
 				impl<'de> $crate::serde::de::Visitor<'de> for Visitor {
