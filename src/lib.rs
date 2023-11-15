@@ -36,10 +36,10 @@ extern crate bitcoin_hashes;
 #[cfg(feature = "std")]
 extern crate unicode_normalization;
 
-#[cfg(feature = "rand_core")]
-pub extern crate rand_core;
 #[cfg(feature = "rand")]
 pub extern crate crate_rand as rand;
+#[cfg(feature = "rand_core")]
+pub extern crate rand_core;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
@@ -542,12 +542,7 @@ impl Mnemonic {
 		const PBKDF2_BYTES: usize = 64;
 
 		let mut seed = [0u8; PBKDF2_BYTES];
-		pbkdf2::pbkdf2(
-			self.words(),
-			normalized_passphrase.as_bytes(),
-			PBKDF2_ROUNDS,
-			&mut seed,
-		);
+		pbkdf2::pbkdf2(self.words(), normalized_passphrase.as_bytes(), PBKDF2_ROUNDS, &mut seed);
 		seed
 	}
 
