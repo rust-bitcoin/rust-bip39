@@ -606,6 +606,26 @@ impl Mnemonic {
 		let (arr, len) = self.to_entropy_array();
 		arr[0..len].to_vec()
 	}
+
+	/// Calculates the final word (based on the checksum) of a manually generated mnemonic.
+	/// There are multiple valid checksums, the first one (alphabetically) is picked.
+	#[cfg(feature = "std")]
+	pub fn finalize_mnemonic<'a, S: Into<Cow<'a, str>>>(s: S) -> Result<Mnemonic, Error> {
+		let mut words = s.into();
+		Mnemonic::normalize_utf8_cow(&mut words);
+		let language = Mnemonic::language_of(&words)?;
+
+		for word in language.word_list() {
+			let potential_mnemonic = format!("{} {}", words, word);
+			match Mnemonic::parse_in_normalized(language, &potential_mnemonic) {
+				Ok(mnemonic) => return Ok(mnemonic),
+				Err(Error::InvalidChecksum) => {}, // Keep searching.
+				Err(e) => return Err(e)
+			}
+		}
+		Err(Error::InvalidChecksum)
+	}
+
 }
 
 impl fmt::Display for Mnemonic {
@@ -1098,6 +1118,32 @@ mod tests {
 			let mnemonic = Mnemonic::parse_in(Language::Japanese, mnemonic_str)
 				.expect(&format!("vector: {}", mnemonic_str));
 			assert_eq!(seed, &mnemonic.to_seed(passphrase)[..], "failed vector: {}", mnemonic_str);
+		}
+	}
+
+        #[test]
+	fn test_finalize_mnemonic() {
+		let vectors = [
+			(
+				"ozone drill grab fiber curtain grace pudding thank cruise elder eight",
+				"about"
+			),
+			(
+				"light rule cinnamon wrap drastic word pride squirrel upgrade then income fatal apart sustain crack supply proud",
+				"access"
+			),
+			(
+				"hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay",
+				"balance"
+			),
+			(
+				"あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん",
+				"あおぞら"
+			)
+		];
+
+		for vector in &vectors {
+			assert_eq!(Mnemonic::parse(format!("{} {}", vector.0, vector.1)), Mnemonic::finalize_mnemonic(vector.0));
 		}
 	}
 }
