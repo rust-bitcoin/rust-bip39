@@ -163,8 +163,23 @@ impl Language {
 
 	/// Get the index of the word in the word list.
 	#[inline]
+	#[allow(unreachable_patterns)]
 	pub fn find_word(self, word: &str) -> Option<u16> {
-		self.word_list().iter().position(|w| *w == word).map(|i| i as u16)
+		match self {
+			// English, Portuguese, Italian, and Korean wordlists are already lexicographically
+			// sorted, so they are candidates for optimization via binary_search
+			Self::English => self.word_list().binary_search(&word).map(|x| x as _).ok(),
+			#[cfg(feature = "portuguese")]
+			Self::Portuguese => self.word_list().binary_search(&word).map(|x| x as _).ok(),
+			#[cfg(feature = "italian")]
+			Self::Italian => self.word_list().binary_search(&word).map(|x| x as _).ok(),
+			#[cfg(feature = "korean")]
+			Self::Korean => self.word_list().binary_search(&word).map(|x| x as _).ok(),
+
+			// All other languages' wordlists are not lexicographically sorted, so we have to
+			// resort to linear search
+			_ => self.word_list().iter().position(|w| *w == word).map(|i| i as u16),
+		}
 	}
 }
 
@@ -301,5 +316,99 @@ mod tests {
 			}
 		}
 		assert!(ok);
+	}
+
+	/// Test the full round trip from index -> word-string -> index for all langauges
+	mod round_trip {
+		use super::*;
+
+		#[test]
+		fn english() {
+			for i in 0..0x800 {
+				let word_str = Language::English.word_list()[i];
+				assert_eq!(Language::English.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "chinese-simplified")]
+		#[test]
+		fn simplified_chinese() {
+			for i in 0..0x800 {
+				let word_str = Language::SimplifiedChinese.word_list()[i];
+				assert_eq!(Language::SimplifiedChinese.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "chinese-traditional")]
+		#[test]
+		fn traditional_chinese() {
+			for i in 0..0x800 {
+				let word_str = Language::TraditionalChinese.word_list()[i];
+				assert_eq!(Language::TraditionalChinese.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "czech")]
+		#[test]
+		fn czech() {
+			for i in 0..0x800 {
+				let word_str = Language::Czech.word_list()[i];
+				assert_eq!(Language::Czech.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "french")]
+		#[test]
+		fn french() {
+			for i in 0..0x800 {
+				let word_str = Language::French.word_list()[i];
+				assert_eq!(Language::French.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "italian")]
+		#[test]
+		fn italian() {
+			for i in 0..0x800 {
+				let word_str = Language::Italian.word_list()[i];
+				assert_eq!(Language::Italian.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "japanese")]
+		#[test]
+		fn japanese() {
+			for i in 0..0x800 {
+				let word_str = Language::Japanese.word_list()[i];
+				assert_eq!(Language::Japanese.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "korean")]
+		#[test]
+		fn korean() {
+			for i in 0..0x800 {
+				let word_str = Language::Korean.word_list()[i];
+				assert_eq!(Language::Korean.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "portuguese")]
+		#[test]
+		fn portuguese() {
+			for i in 0..0x800 {
+				let word_str = Language::Portuguese.word_list()[i];
+				assert_eq!(Language::Portuguese.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "spanish")]
+		#[test]
+		fn spanish() {
+			for i in 0..0x800 {
+				let word_str = Language::Spanish.word_list()[i];
+				assert_eq!(Language::Spanish.find_word(word_str), Some(i as _));
+			}
+		}
 	}
 }
