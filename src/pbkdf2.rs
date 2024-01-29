@@ -112,7 +112,7 @@ pub(crate) fn pbkdf2<M>(mnemonic: M, unprefixed_salt: &[u8], c: usize, res: &mut
 			prfc.input(unprefixed_salt);
 			prfc.input(&u32_to_array_be((i + 1) as u32));
 
-			let salt = hmac::Hmac::from_engine(prfc).into_inner();
+			let salt = hmac::Hmac::from_engine(prfc).to_byte_array();
 			xor(chunk, &salt);
 			salt
 		};
@@ -120,7 +120,7 @@ pub(crate) fn pbkdf2<M>(mnemonic: M, unprefixed_salt: &[u8], c: usize, res: &mut
 		for _ in 1..c {
 			let mut prfc = prf.clone();
 			prfc.input(&salt);
-			salt = hmac::Hmac::from_engine(prfc).into_inner();
+			salt = hmac::Hmac::from_engine(prfc).to_byte_array();
 
 			xor(chunk, &salt);
 		}
