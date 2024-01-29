@@ -2,7 +2,7 @@
 
 set -ex
 
-FEATURES="serde rand all-languages"
+FEATURES="serde rand zeroize all-languages chinese-simplified chinese-traditional czech french italian japanese korean portuguese spanish"
 
 cargo --version
 rustc --version
