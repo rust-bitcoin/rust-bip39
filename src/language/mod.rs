@@ -325,6 +325,25 @@ mod tests {
 		assert!(ok);
 	}
 
+	#[test]
+	fn test_ordered_lists() {
+		let languages = [
+			Language::English,
+			#[cfg(feature = "portuguese")]
+			Language::Portuguese,
+			#[cfg(feature = "italian")]
+			Language::Italian,
+			#[cfg(feature = "korean")]
+			Language::Korean,
+		];
+
+		for lang in languages {
+			let mut list = lang.word_list().to_vec();
+			list.sort();
+			assert_eq!(list, lang.word_list());
+		}
+	}
+
 	/// Test the full round trip from index -> word-string -> index for all langauges
 	mod round_trip {
 		use super::*;
