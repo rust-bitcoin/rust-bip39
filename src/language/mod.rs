@@ -163,7 +163,6 @@ impl Language {
 
 	/// Get the index of the word in the word list.
 	#[inline]
-	#[allow(unreachable_patterns)]
 	pub fn find_word(self, word: &str) -> Option<u16> {
 		match self {
 			// English, Portuguese, Italian, and Korean wordlists are already lexicographically
@@ -178,6 +177,14 @@ impl Language {
 
 			// All other languages' wordlists are not lexicographically sorted, so we have to
 			// resort to linear search
+			#[cfg(any(
+				feature = "chinese-simplified",
+				feature = "chinese-traditional",
+				feature = "czech",
+				feature = "french",
+				feature = "japanese",
+				feature = "spanish",
+			))]
 			_ => self.word_list().iter().position(|w| *w == word).map(|i| i as u16),
 		}
 	}
