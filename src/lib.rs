@@ -899,7 +899,7 @@ mod tests {
 				);
 				assert_eq!(&entropy, &mnemonic.to_entropy(), "failed vector: {}", mnemonic_str);
 				assert_eq!(
-					&entropy,
+					&entropy[..],
 					&mnemonic.to_entropy_array().0[0..entropy.len()],
 					"failed vector: {}",
 					mnemonic_str

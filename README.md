@@ -31,4 +31,10 @@ Use the `all-languages` feature to enable all languages.
 
 This crate supports Rust v1.41.1 and up and works with `no_std`.
 
+When using older version of Rust, you might have to pin the version of the
+`bitcoin_hashes` crate used as such:
+```
+$ cargo update --package "bitcoin_hashes" --precise "0.12.0"
+```
+
 If you enable the `zeroize` feature the MSRV becomes 1.51.

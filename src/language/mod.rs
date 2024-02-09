@@ -337,10 +337,10 @@ mod tests {
 			Language::Korean,
 		];
 
-		for lang in languages {
+		for lang in languages.iter() {
 			let mut list = lang.word_list().to_vec();
 			list.sort();
-			assert_eq!(list, lang.word_list());
+			assert_eq!(&list[..], &lang.word_list()[..]);
 		}
 	}
 
