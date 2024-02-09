@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+# v2.1.0
+
+- Add support for Portuguese as per addition to BIP.
+- Add constant Language::ALL and deprecate Language::all()
+- Add Mnemonic::words and deprecate Mnemonic::word_iter
+- Add Mnemonic::word_indices
+
 # v2.0.0
 
 - Set Rust edition to 2018

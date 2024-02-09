@@ -69,28 +69,33 @@ impl Default for Language {
 impl Language {
 	/// The list of supported languages.
 	/// Language support is managed by compile features.
+	pub const ALL: &'static [Language] = &[
+		Language::English,
+		#[cfg(feature = "chinese-simplified")]
+		Language::SimplifiedChinese,
+		#[cfg(feature = "chinese-traditional")]
+		Language::TraditionalChinese,
+		#[cfg(feature = "czech")]
+		Language::Czech,
+		#[cfg(feature = "french")]
+		Language::French,
+		#[cfg(feature = "italian")]
+		Language::Italian,
+		#[cfg(feature = "japanese")]
+		Language::Japanese,
+		#[cfg(feature = "korean")]
+		Language::Korean,
+		#[cfg(feature = "portuguese")]
+		Language::Portuguese,
+		#[cfg(feature = "spanish")]
+		Language::Spanish,
+	];
+
+	/// The list of supported languages.
+	/// Language support is managed by compile features.
+	#[deprecated(since = "2.1.0", note = "use constant Language::ALL instead")]
 	pub fn all() -> &'static [Language] {
-		&[
-			Language::English,
-			#[cfg(feature = "chinese-simplified")]
-			Language::SimplifiedChinese,
-			#[cfg(feature = "chinese-traditional")]
-			Language::TraditionalChinese,
-			#[cfg(feature = "czech")]
-			Language::Czech,
-			#[cfg(feature = "french")]
-			Language::French,
-			#[cfg(feature = "italian")]
-			Language::Italian,
-			#[cfg(feature = "japanese")]
-			Language::Japanese,
-			#[cfg(feature = "korean")]
-			Language::Korean,
-			#[cfg(feature = "portuguese")]
-			Language::Portuguese,
-			#[cfg(feature = "spanish")]
-			Language::Spanish,
-		]
+		Language::ALL
 	}
 
 	/// The word list for this language.
@@ -306,7 +311,7 @@ mod tests {
 		// Afterwards, we make sure that no word maps to multiple languages
 		// if either of those is guaranteed to have unique words.
 		let mut words: HashMap<&str, Vec<Language>> = HashMap::new();
-		for lang in Language::all().iter() {
+		for lang in Language::ALL.iter() {
 			for word in lang.word_list().iter() {
 				words.entry(word).or_insert(Vec::new()).push(*lang);
 			}
