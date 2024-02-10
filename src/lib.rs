@@ -45,6 +45,13 @@ pub extern crate serde;
 
 use core::{fmt, str};
 
+/// We support a wide range of dependency versions for `rand` and `rand_core` and not
+/// all versions play nicely together. These re-exports fix that.
+#[cfg(all(feature = "rand", feature = "rand_core"))]
+use rand::{CryptoRng, RngCore};
+#[cfg(all(not(feature = "rand"), feature = "rand_core"))]
+use rand_core::{CryptoRng, RngCore};
+
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 #[cfg(feature = "std")]
@@ -262,7 +269,7 @@ impl Mnemonic {
 		word_count: usize,
 	) -> Result<Mnemonic, Error>
 	where
-		R: rand_core::RngCore + rand_core::CryptoRng,
+		R: RngCore + CryptoRng,
 	{
 		if is_invalid_word_count(word_count) {
 			return Err(Error::BadWordCount(word_count));
@@ -270,7 +277,7 @@ impl Mnemonic {
 
 		let entropy_bytes = (word_count / 3) * 4;
 		let mut entropy = [0u8; (MAX_NB_WORDS / 3) * 4];
-		rand_core::RngCore::fill_bytes(rng, &mut entropy[0..entropy_bytes]);
+		RngCore::fill_bytes(rng, &mut entropy[0..entropy_bytes]);
 		Mnemonic::from_entropy_in(language, &entropy[0..entropy_bytes])
 	}
 
