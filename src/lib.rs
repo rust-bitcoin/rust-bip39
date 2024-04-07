@@ -46,6 +46,8 @@ pub extern crate serde;
 
 #[cfg(feature = "alloc")]
 use alloc::borrow::Cow;
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::{string::ToString, vec::Vec};
 use core::{fmt, str};
 
 /// We support a wide range of dependency versions for `rand` and `rand_core` and not
@@ -620,6 +622,7 @@ impl Mnemonic {
 	/// following assertion should hold:
 	///
 	/// ```rust
+	/// # # [cfg(feature = "alloc")] {
 	/// # use bip39::Mnemonic;
 	/// # use bitcoin_hashes::{Hash, sha256, hex::FromHex};
 	/// # let ent = Vec::from_hex("98FE3D0FF6E955A484B0A1D0C9CE10F6").unwrap();
@@ -627,6 +630,7 @@ impl Mnemonic {
 	/// let checksum_width = m.word_count() / 3;
 	/// let shift_width = 8 - checksum_width;
 	/// assert_eq!(sha256::Hash::hash(&m.to_entropy())[0] >> shift_width, m.checksum());
+	/// # }
 	/// ```
 	///
 	/// Note that since this library constrains initialization of `Mnemonic` instances through an

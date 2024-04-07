@@ -10,6 +10,7 @@ macro_rules! serde_string_impl {
 			{
 				use core::fmt::{self, Formatter};
 				use core::str::FromStr;
+				#[cfg(feature = "alloc")]
 				use alloc::string::String;
 
 				struct Visitor;
@@ -34,6 +35,7 @@ macro_rules! serde_string_impl {
 						self.visit_str(v)
 					}
 
+					#[cfg(feature = "alloc")]
 					fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
 					where
 						E: $crate::serde::de::Error,
