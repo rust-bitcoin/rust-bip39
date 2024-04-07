@@ -46,6 +46,8 @@ pub extern crate serde;
 
 #[cfg(feature = "alloc")]
 use alloc::borrow::Cow;
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::{string::ToString, vec::Vec};
 use core::{fmt, str};
 
 /// We support a wide range of dependency versions for `rand` and `rand_core` and not
