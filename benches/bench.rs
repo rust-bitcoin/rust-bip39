@@ -59,6 +59,7 @@ fn from_entropy(b: &mut Bencher) {
 	});
 }
 
+#[cfg(feature = "rand")]
 #[bench]
 fn new_mnemonic(b: &mut Bencher) {
 	b.iter(|| {
