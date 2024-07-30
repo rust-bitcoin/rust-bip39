@@ -35,9 +35,10 @@ The `bitcoin_hashes` range dependency effects the MSRV as follows
 
 - `bitcoin_hashes v0.12`: MSRV v1.41.1
 - `bitcoin_hashes v0.13`: MSRV v1.48.0
+- `bitcoin_hashes v0.14`: MSRV v1.56.1
 
 When using older version of Rust, you might have to pin the versions of several crates, for an up-to-date list refer to [`contrib/test.sh`](contrib/test.sh):
-
+ 
 ```bash
 cargo update --package "bitcoin_hashes" --precise "0.12.0"
 cargo update --package "rand" --precise "0.6.0"
