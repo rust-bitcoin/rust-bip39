@@ -167,6 +167,12 @@ impl Language {
 	}
 
 	/// Get the index of the word in the word list.
+	///
+	/// # Warning
+	///
+	/// Indices returned by this function start with `0`, while most wallet docs have their BIP39 wordlists start with `1`.
+	///
+	/// In other words: `find_word("abandon")` returns `Some(0)` instead of `Some(1)` (which a naive user could assume).
 	#[inline]
 	pub fn find_word(self, word: &str) -> Option<u16> {
 		match self {
