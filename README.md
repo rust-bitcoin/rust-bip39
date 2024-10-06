@@ -35,6 +35,7 @@ When using older version of Rust, you might have to pin the version of the
 `bitcoin_hashes` crate used as such:
 ```
 $ cargo update --package "bitcoin_hashes" --precise "0.12.0"
+$ cargo update --package "rand" --precise "0.6.5"
 ```
 
 If you enable the `zeroize` feature the MSRV becomes 1.51.
