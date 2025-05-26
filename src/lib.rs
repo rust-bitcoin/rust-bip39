@@ -44,7 +44,7 @@ pub extern crate rand_core;
 #[cfg(feature = "serde")]
 pub extern crate serde;
 
-#[cfg(feature = "alloc")]
+#[cfg(feature = "unicode-normalization")]
 use alloc::borrow::Cow;
 use core::{fmt, str};
 

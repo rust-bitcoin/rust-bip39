@@ -13,18 +13,19 @@ edition = "2018"
 
 [features]
 default = [ "std" ]
-std = [ "alloc", "serde/std", "unicode-normalization/std" ]
+std = [ "alloc", "serde/std", "unicode-normalization?/std" ]
 rand = [ "crate_rand", "rand_core" ]
-alloc = [ "unicode-normalization" ]
+alloc = []
+unicode-normalization = [ "dep:unicode-normalization", "alloc" ] 
 
 # Note: English is the standard for bip39 so always included
-chinese-simplified = []
-chinese-traditional = []
+chinese-simplified = [ "unicode-normalization" ]
+chinese-traditional = [ "unicode-normalization" ]
 czech = []
 french = []
 italian = []
-japanese = []
-korean = []
+japanese = [ "unicode-normalization" ]
+korean = [ "unicode-normalization" ]
 portuguese = []
 spanish = []
 
