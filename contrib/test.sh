@@ -9,6 +9,10 @@ rustc --version
 
 # Pin dependencies as required if we are using MSRV toolchain.
 if cargo --version | grep "1\.41"; then
+    cp Cargo-minimal.lock Cargo.lock
+    cargo check --locked
+    rm Cargo.lock
+
     cargo update --package "bitcoin_hashes" --precise "0.12.0"
     cargo update --package "rand" --precise "0.6.0"
     cargo update --package "libc" --precise "0.2.151"
