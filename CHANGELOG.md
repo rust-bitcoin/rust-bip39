@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+# v2.2.0
+
+- Unpin unicode-normalization version
+
 # v2.1.0
 
 - Add support for Portuguese as per addition to BIP.
