@@ -48,6 +48,9 @@ pub extern crate serde;
 use alloc::borrow::Cow;
 use core::{fmt, str};
 
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::{string::ToString, vec::Vec};
+
 /// We support a wide range of dependency versions for `rand` and `rand_core` and not
 /// all versions play nicely together. These re-exports fix that.
 #[cfg(all(feature = "rand", feature = "rand_core"))]
