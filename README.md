@@ -31,6 +31,11 @@ Use the `all-languages` feature to enable all languages.
 
 This crate supports Rust v1.41.1 and up and works with `no_std`.
 
+The `bitcoin_hashes` range dependency effects the MSRV as follows
+
+- `bitcoin_hashes v0.12`: MSRV v1.41.1
+- `bitcoin_hashes v0.13`: MSRV v1.48.0
+
 When using older version of Rust, you might have to pin the versions of several crates, for an up-to-date list refer to [`contrib/test.sh`](contrib/test.sh):
 
 ```bash
