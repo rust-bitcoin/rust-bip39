@@ -3,22 +3,30 @@
 set -ex
 
 FEATURES="serde rand all-languages chinese-simplified chinese-traditional czech french italian japanese korean portuguese spanish"
+RUSTC_MINOR_VERSION=$(rustc --version | awk '{ split($2,a,"."); print a[2] }')
 
 cargo --version
 rustc --version
 
-# Pin dependencies as required if we are using MSRV toolchain.
-if cargo --version | grep "1\.41"; then
+# Check the minimal lock file for all MSRV toolchains we test.
+if [ "$RUSTC_MINOR_VERSION" -eq 56 ]; then
     cp Cargo-minimal.lock Cargo.lock
     cargo check --locked
     rm Cargo.lock
+fi
 
+# The crate's lowest MSRV (not lifted by `bitcoin_hashes` dep or `zeroize` feature). 
+if [ "$RUSTC_MINOR_VERSION" -eq 41 ]; then
     cargo update --package "bitcoin_hashes" --precise "0.12.0"
     cargo update --package "rand" --precise "0.6.0"
     cargo update --package "libc" --precise "0.2.151"
     cargo update --package "tinyvec" --precise "1.6.0"
     cargo update --package "unicode-normalization" --precise "0.1.22"
 fi
+
+# `bitcoin_hashes` version raises the crate MSRV, we test with these toolchains explicitly in CI.
+[ "$RUSTC_MINOR_VERSION" -eq 48 ]  && cargo update --package "bitcoin_hashes" --precise "0.13.0"
+[ "$RUSTC_MINOR_VERSION" -eq 56 ]  && cargo update --package "bitcoin_hashes" --precise "0.14.0"
 
 echo "********* Testing std *************"
 # Test without any features other than std first
@@ -34,7 +42,7 @@ do
     cargo build --verbose --features="$feature" --no-default-features
 done
 
-if cargo --version | grep -v "1\.41"; then
+if [ "$RUSTC_MINOR_VERSION" -ge 51 ]; then
     cargo build --verbose --features="zeroize" --no-default-features
 fi
 

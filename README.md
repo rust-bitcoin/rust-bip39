@@ -33,9 +33,9 @@ This crate supports Rust v1.41.1 and up and works with `no_std`.
 
 The `bitcoin_hashes` range dependency effects the MSRV as follows
 
-- `bitcoin_hashes v0.12`: MSRV v1.41.1
-- `bitcoin_hashes v0.13`: MSRV v1.48.0
-- `bitcoin_hashes v0.14`: MSRV v1.56.1
+- `bitcoin_hashes v0.12`: MSRV `v1.41.1`
+- `bitcoin_hashes v0.13`: MSRV `v1.48.0`
+- `bitcoin_hashes v0.14`: MSRV `v1.56.1`
 
 When using older version of Rust, you might have to pin the versions of several crates, for an up-to-date list refer to [`contrib/test.sh`](contrib/test.sh):
  
@@ -47,4 +47,4 @@ cargo update --package "tinyvec" --precise "1.6.0"
 cargo update --package "unicode-normalization" --precise "0.1.22"
 ```
 
-If you enable the `zeroize` feature the MSRV becomes 1.51.
+If you enable the `zeroize` feature the MSRV becomes `v1.51.0`.
