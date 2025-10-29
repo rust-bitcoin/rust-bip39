@@ -49,13 +49,13 @@ serde = { version = "1.0", default-features = false, features = [ "alloc" ], opt
 zeroize = { version = "1.5", features = ["zeroize_derive"], default-features = false, optional = true }
 
 # Unexported dependnecies
-bitcoin_hashes = { version = ">=0.12, <=0.13", default-features = false }
+bitcoin_hashes = { version = ">=0.12,<0.15", default-features = false }
 unicode-normalization = { version = "0.1.22", default-features = false, optional = true }
 
 [dev-dependencies]
 # Enabling the "rand" feature by default to run the benches
 bip39 = { path = ".", features = ["rand"] }
-bitcoin_hashes = ">=0.12,<0.14" # enable default features for test
+bitcoin_hashes = ">=0.12,<0.15" # enable default features for test
 
 
 [package.metadata.docs.rs]
