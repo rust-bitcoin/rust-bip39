@@ -174,7 +174,7 @@ impl error::Error for Error {}
 /// the Cargo features.)
 ///
 /// Supported number of words are 12, 15, 18, 21, and 24.
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct Mnemonic {
 	/// The language the mnemonic.
@@ -655,6 +655,15 @@ impl fmt::Display for Mnemonic {
 	}
 }
 
+impl fmt::Debug for Mnemonic {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Mnemonic")
+			.field("lang", &self.language())
+            // TODO(msrv>=1.53): switch to `.finish_non_exhaustive()` once MSRV 1.41 is dropped.
+			.finish()
+	}
+}
+
 impl str::FromStr for Mnemonic {
 	type Err = Error;
 
@@ -1003,6 +1012,25 @@ mod tests {
 
 		//greater than 256 bits
 		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
+	}
+
+	#[test]
+	fn debug_does_not_leak_phrase() {
+		let m = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+
+		let dbg = format!("{:?}", m);
+
+		assert!(dbg.starts_with("Mnemonic {") || dbg.starts_with("Mnemonic(") || dbg.contains("Mnemonic"),
+			"Debug output doesn't look like a struct: {}", dbg);
+		assert!(dbg.contains("lang"), "Debug must include language info: {}", dbg);
+
+		for w in m.words() {
+			assert!(
+				!dbg.contains(w),
+				"Debug leaked sensitive word: {} (output: {})",
+				w, dbg
+			);
+		}
 	}
 
 	#[cfg(all(feature = "japanese", feature = "std"))]
