@@ -1,0 +1,11 @@
+name: SemVer checks
+on: [push, pull_request]
+
+jobs:
+  semver-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+      - name: Check SemVer
+        uses: obi1kenobi/cargo-semver-checks-action@v2
