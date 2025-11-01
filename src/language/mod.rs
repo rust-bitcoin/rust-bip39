@@ -9,6 +9,8 @@ mod czech;
 mod english;
 #[cfg(feature = "french")]
 mod french;
+#[cfg(feature = "german")]
+mod german;
 #[cfg(feature = "italian")]
 mod italian;
 #[cfg(feature = "japanese")]
@@ -21,7 +23,7 @@ mod portuguese;
 mod spanish;
 
 /// The maximum number of languages enabled.
-pub(crate) const MAX_NB_LANGUAGES: usize = 10;
+pub(crate) const MAX_NB_LANGUAGES: usize = 11;
 
 /// Language to be used for the mnemonic phrase.
 ///
@@ -43,6 +45,9 @@ pub enum Language {
 	#[cfg(feature = "french")]
 	/// The French language.
 	French,
+	#[cfg(feature = "german")]
+	/// The German language.
+	German,
 	#[cfg(feature = "italian")]
 	/// The Italian language.
 	Italian,
@@ -79,6 +84,8 @@ impl Language {
 		Language::Czech,
 		#[cfg(feature = "french")]
 		Language::French,
+		#[cfg(feature = "german")]
+		Language::German,
 		#[cfg(feature = "italian")]
 		Language::Italian,
 		#[cfg(feature = "japanese")]
@@ -111,6 +118,8 @@ impl Language {
 			Language::Czech => &czech::WORDS,
 			#[cfg(feature = "french")]
 			Language::French => &french::WORDS,
+			#[cfg(feature = "german")]
+			Language::German => &german::WORDS,
 			#[cfg(feature = "italian")]
 			Language::Italian => &italian::WORDS,
 			#[cfg(feature = "japanese")]
@@ -138,6 +147,8 @@ impl Language {
 			Language::Czech => true,
 			#[cfg(feature = "french")]
 			Language::French => false,
+			#[cfg(feature = "german")]
+			Language::German => true,
 			#[cfg(feature = "italian")]
 			Language::Italian => true,
 			#[cfg(feature = "japanese")]
@@ -189,6 +200,7 @@ impl Language {
 				feature = "french",
 				feature = "japanese",
 				feature = "spanish",
+				feature = "german",
 			))]
 			_ => self.word_list().iter().position(|w| *w == word).map(|i| i as u16),
 		}
@@ -210,6 +222,7 @@ mod tests {
 		feature = "chinese-traditional",
 		feature = "czech",
 		feature = "french",
+		feature = "german",
 		feature = "italian",
 		feature = "japanese",
 		feature = "korean",
@@ -226,6 +239,7 @@ mod tests {
 		//! 7e80e161c3e93d9554c2efb78d4e3cebf8fc727e9c52e03b83b94406bdcc95fc  czech.txt
 		//! 2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda  english.txt
 		//! ebc3959ab7801a1df6bac4fa7d970652f1df76b683cd2f4003c941c63d517e59  french.txt
+		//! 7965dc8c6b413ccb635d3021043365e18df0367bf5413a50a069a98addfe4e1d  german.txt (https://github.com/dys2p/wordlists-de/blob/main/de-2048-v1.txt)
 		//! d392c49fdb700a24cd1fceb237c1f65dcc128f6b34a8aacb58b59384b5c648c2  italian.txt
 		//! 2eed0aef492291e061633d7ad8117f1a2b03eb80a29d0e4e3117ac2528d05ffd  japanese.txt
 		//! 9e95f86c167de88f450f0aaf89e87f6624a57f973c67b516e338e8e8b8897f60  korean.txt
@@ -246,6 +260,7 @@ mod tests {
 			("7e80e161c3e93d9554c2efb78d4e3cebf8fc727e9c52e03b83b94406bdcc95fc", Language::Czech),
 			("2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda", Language::English),
 			("ebc3959ab7801a1df6bac4fa7d970652f1df76b683cd2f4003c941c63d517e59", Language::French),
+			("7965dc8c6b413ccb635d3021043365e18df0367bf5413a50a069a98addfe4e1d", Language::German),
 			("d392c49fdb700a24cd1fceb237c1f65dcc128f6b34a8aacb58b59384b5c648c2", Language::Italian),
 			(
 				"2eed0aef492291e061633d7ad8117f1a2b03eb80a29d0e4e3117ac2528d05ffd",
@@ -297,6 +312,7 @@ mod tests {
 		feature = "chinese-traditional",
 		feature = "czech",
 		feature = "french",
+		feature = "german",
 		feature = "italian",
 		feature = "japanese",
 		feature = "korean",
@@ -394,6 +410,15 @@ mod tests {
 			for i in 0..0x800 {
 				let word_str = Language::French.word_list()[i];
 				assert_eq!(Language::French.find_word(word_str), Some(i as _));
+			}
+		}
+
+		#[cfg(feature = "german")]
+		#[test]
+		fn german() {
+			for i in 0..0x800 {
+				let word_str = Language::German.word_list()[i];
+				assert_eq!(Language::German.find_word(word_str), Some(i as _));
 			}
 		}
 
