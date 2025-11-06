@@ -144,13 +144,13 @@ impl Language {
 			#[cfg(feature = "chinese-traditional")]
 			Language::TraditionalChinese => false,
 			#[cfg(feature = "czech")]
-			Language::Czech => true,
+			Language::Czech => false,
 			#[cfg(feature = "french")]
 			Language::French => false,
 			#[cfg(feature = "german")]
-			Language::German => true,
+			Language::German => false,
 			#[cfg(feature = "italian")]
-			Language::Italian => true,
+			Language::Italian => false,
 			#[cfg(feature = "japanese")]
 			Language::Japanese => true,
 			#[cfg(feature = "korean")]
@@ -328,6 +328,11 @@ mod tests {
 		// if either of those is guaranteed to have unique words.
 		let mut words: HashMap<&str, Vec<Language>> = HashMap::new();
 		for lang in Language::ALL.iter() {
+			// Skip adding german as german is not officially specified
+			// in BIP39 and causes more word overlaps
+			if lang == &Language::German {
+				continue;
+			}
 			for word in lang.word_list().iter() {
 				words.entry(word).or_insert(Vec::new()).push(*lang);
 			}
