@@ -47,6 +47,10 @@ pub enum Language {
 	French,
 	#[cfg(feature = "german")]
 	/// The German language.
+	/// The german wordlist is based on  https://github.com/dys2p/wordlists-de/blob/main/de-2048-v1.txt
+	/// WARNING: German is not part of the BIP39 standard.
+	/// If you enable support for german, this will cause
+	/// word overlaps with other languages.
 	German,
 	#[cfg(feature = "italian")]
 	/// The Italian language.
