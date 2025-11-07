@@ -430,12 +430,20 @@ impl Mnemonic {
 	/// interpreted in multiple languages, an [Error::AmbiguousLanguages] is
 	/// returned, containing the possible languages.
 	pub fn language_of<S: AsRef<str>>(mnemonic: S) -> Result<Language, Error> {
-		Mnemonic::language_of_iter(mnemonic.as_ref().split_whitespace())
+		// Split on both standard whitespace and ideographic space to handle Japanese
+		let words: Vec<&str> = mnemonic.as_ref()
+			.split(|c: char| c.is_whitespace() || c == '　')
+			.filter(|s| !s.is_empty())
+			.collect();
+		Mnemonic::language_of_iter(words.into_iter())
 	}
 
 	/// Parse a mnemonic in normalized UTF8 in the given language.
 	pub fn parse_in_normalized(language: Language, s: &str) -> Result<Mnemonic, Error> {
-		let nb_words = s.split_whitespace().count();
+		let word_iter = language.split_mnemonic(s);
+		let words_vec: Vec<&str> = word_iter.collect();
+		let nb_words = words_vec.len();
+		
 		if is_invalid_word_count(nb_words) {
 			return Err(Error::BadWordCount(nb_words));
 		}
@@ -447,7 +455,7 @@ impl Mnemonic {
 		// We only use `nb_words * 11` elements in this array.
 		let mut bits = [false; MAX_NB_WORDS * 11];
 
-		for (i, word) in s.split_whitespace().enumerate() {
+		for (i, word) in words_vec.iter().enumerate() {
 			let idx = language.find_word(word).ok_or(Error::UnknownWord(i))?;
 
 			words[i] = idx;
@@ -490,7 +498,10 @@ impl Mnemonic {
 		language: Language,
 		s: &str,
 	) -> Result<Mnemonic, Error> {
-		let nb_words = s.split_whitespace().count();
+		let word_iter = language.split_mnemonic(s);
+		let words_vec: Vec<&str> = word_iter.collect();
+		let nb_words = words_vec.len();
+		
 		if is_invalid_word_count(nb_words) {
 			return Err(Error::BadWordCount(nb_words));
 		}
@@ -498,7 +509,7 @@ impl Mnemonic {
 		// Here we will store the eventual words.
 		let mut words = [EOF; MAX_NB_WORDS];
 
-		for (i, word) in s.split_whitespace().enumerate() {
+		for (i, word) in words_vec.iter().enumerate() {
 			let idx = language.find_word(word).ok_or(Error::UnknownWord(i))?;
 
 			words[i] = idx;
@@ -524,6 +535,11 @@ impl Mnemonic {
 	) -> Result<Mnemonic, Error> {
 		let mut cow = s.into();
 		Mnemonic::normalize_utf8_cow(&mut cow);
+		// For Japanese, convert ASCII spaces back to ideographic spaces after normalization
+		#[cfg(feature = "japanese")]
+		if language == Language::Japanese && cow.contains(' ') {
+			cow = Cow::Owned(cow.replace(' ', "　"));
+		}
 		Ok(Mnemonic::parse_in_normalized(language, cow.as_ref())?)
 	}
 
@@ -645,9 +661,10 @@ impl Mnemonic {
 
 impl fmt::Display for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let separator = self.lang.separator();
 		for (i, word) in self.words().enumerate() {
 			if i > 0 {
-				f.write_str(" ")?;
+				f.write_str(separator)?;
 			}
 			f.write_str(word)?;
 		}
