@@ -68,65 +68,65 @@ impl Default for Language {
 }
 
 impl FromStr for Language {
-    type Err = ();
+	type Err = ();
 
-    /// Parses a string into a language.
-    ///
-    /// The following strings are accepted:
-    /// - "en" or "english" for English
-    /// - "zh-cn" or "chinese-simplified" for Simplified Chinese
-    /// - "zh-tw" or "chinese-traditional" for Traditional Chinese
-    /// - "cs" or "czech" for Czech
-    /// - "fr" or "french" for French
-    /// - "it" or "italian" for Italian
-    /// - "ja" or "japanese" for Japanese
-    /// - "ko" or "korean" for Korean
-    /// - "pt" or "portuguese" for Portuguese
-    /// - "es" or "spanish" for Spanish
-    ///
-    /// The matching is case-insensitive.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.eq_ignore_ascii_case("en") || s.eq_ignore_ascii_case("english") {
-            return Ok(Language::English);
-        }
-        #[cfg(feature = "chinese-simplified")]
-        if s.eq_ignore_ascii_case("zh-cn") || s.eq_ignore_ascii_case("chinese-simplified") {
-            return Ok(Language::SimplifiedChinese);
-        }
-        #[cfg(feature = "chinese-traditional")]
-        if s.eq_ignore_ascii_case("zh-tw") || s.eq_ignore_ascii_case("chinese-traditional") {
-            return Ok(Language::TraditionalChinese);
-        }
-        #[cfg(feature = "czech")]
-        if s.eq_ignore_ascii_case("cs") || s.eq_ignore_ascii_case("czech") {
-            return Ok(Language::Czech);
-        }
-        #[cfg(feature = "french")]
-        if s.eq_ignore_ascii_case("fr") || s.eq_ignore_ascii_case("french") {
-            return Ok(Language::French);
-        }
-        #[cfg(feature = "italian")]
-        if s.eq_ignore_ascii_case("it") || s.eq_ignore_ascii_case("italian") {
-            return Ok(Language::Italian);
-        }
-        #[cfg(feature = "japanese")]
-        if s.eq_ignore_ascii_case("ja") || s.eq_ignore_ascii_case("japanese") {
-            return Ok(Language::Japanese);
-        }
-        #[cfg(feature = "korean")]
-        if s.eq_ignore_ascii_case("ko") || s.eq_ignore_ascii_case("korean") {
-            return Ok(Language::Korean);
-        }
-        #[cfg(feature = "portuguese")]
-        if s.eq_ignore_ascii_case("pt") || s.eq_ignore_ascii_case("portuguese") {
-            return Ok(Language::Portuguese);
-        }
-        #[cfg(feature = "spanish")]
-        if s.eq_ignore_ascii_case("es") || s.eq_ignore_ascii_case("spanish") {
-            return Ok(Language::Spanish);
-        }
-        Err(())
-    }
+	/// Parses a string into a language.
+	///
+	/// The following strings are accepted:
+	/// - "en" or "english" for English
+	/// - "zh-cn" or "chinese-simplified" for Simplified Chinese
+	/// - "zh-tw" or "chinese-traditional" for Traditional Chinese
+	/// - "cs" or "czech" for Czech
+	/// - "fr" or "french" for French
+	/// - "it" or "italian" for Italian
+	/// - "ja" or "japanese" for Japanese
+	/// - "ko" or "korean" for Korean
+	/// - "pt" or "portuguese" for Portuguese
+	/// - "es" or "spanish" for Spanish
+	///
+	/// The matching is case-insensitive.
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		if s.eq_ignore_ascii_case("en") || s.eq_ignore_ascii_case("english") {
+			return Ok(Language::English);
+		}
+		#[cfg(feature = "chinese-simplified")]
+		if s.eq_ignore_ascii_case("zh-cn") || s.eq_ignore_ascii_case("chinese-simplified") {
+			return Ok(Language::SimplifiedChinese);
+		}
+		#[cfg(feature = "chinese-traditional")]
+		if s.eq_ignore_ascii_case("zh-tw") || s.eq_ignore_ascii_case("chinese-traditional") {
+			return Ok(Language::TraditionalChinese);
+		}
+		#[cfg(feature = "czech")]
+		if s.eq_ignore_ascii_case("cs") || s.eq_ignore_ascii_case("czech") {
+			return Ok(Language::Czech);
+		}
+		#[cfg(feature = "french")]
+		if s.eq_ignore_ascii_case("fr") || s.eq_ignore_ascii_case("french") {
+			return Ok(Language::French);
+		}
+		#[cfg(feature = "italian")]
+		if s.eq_ignore_ascii_case("it") || s.eq_ignore_ascii_case("italian") {
+			return Ok(Language::Italian);
+		}
+		#[cfg(feature = "japanese")]
+		if s.eq_ignore_ascii_case("ja") || s.eq_ignore_ascii_case("japanese") {
+			return Ok(Language::Japanese);
+		}
+		#[cfg(feature = "korean")]
+		if s.eq_ignore_ascii_case("ko") || s.eq_ignore_ascii_case("korean") {
+			return Ok(Language::Korean);
+		}
+		#[cfg(feature = "portuguese")]
+		if s.eq_ignore_ascii_case("pt") || s.eq_ignore_ascii_case("portuguese") {
+			return Ok(Language::Portuguese);
+		}
+		#[cfg(feature = "spanish")]
+		if s.eq_ignore_ascii_case("es") || s.eq_ignore_ascii_case("spanish") {
+			return Ok(Language::Spanish);
+		}
+		Err(())
+	}
 }
 
 impl Language {
