@@ -167,6 +167,34 @@ impl fmt::Display for Error {
 #[cfg(feature = "std")]
 impl error::Error for Error {}
 
+/// Supported BIP39 mnemonic word counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WordCount {
+	/// 12-word mnemonic (128-bit entropy)
+	Words12,
+	/// 15-word mnemonic (160-bit entropy)
+	Words15,
+	/// 18-word mnemonic (192-bit entropy)
+	Words18,
+	/// 21-word mnemonic (224-bit entropy)
+	Words21,
+	/// 24-word mnemonic (256-bit entropy)
+	Words24,
+}
+
+impl WordCount {
+	/// Returns the word count as a usize value.
+	pub fn word_count(&self) -> usize {
+		match self {
+			WordCount::Words12 => 12,
+			WordCount::Words15 => 15,
+			WordCount::Words18 => 18,
+			WordCount::Words21 => 21,
+			WordCount::Words24 => 24,
+		}
+	}
+}
+
 /// A mnemonic code.
 ///
 /// The [core::str::FromStr] implementation will try to determine the language of the
@@ -256,25 +284,26 @@ impl Mnemonic {
 
 	/// Generate a new [Mnemonic] in the given language
 	/// with the given randomness source.
-	/// For the different supported word counts, see documentation on [Mnemonic].
+	/// For the different supported word counts, see documentation on [WordCount].
 	///
 	/// Example:
 	///
 	/// ```
-	/// use bip39::{Mnemonic, Language};
+	/// use bip39::{Mnemonic, Language, WordCount};
 	///
 	/// let mut rng = bip39::rand::thread_rng();
-	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
+	/// let m = Mnemonic::generate_in_with(&mut rng, Language::English, WordCount::Words24).unwrap();
 	/// ```
 	#[cfg(feature = "rand_core")]
 	pub fn generate_in_with<R>(
 		rng: &mut R,
 		language: Language,
-		word_count: usize,
+		word_count: WordCount,
 	) -> Result<Mnemonic, Error>
 	where
 		R: RngCore + CryptoRng,
 	{
+		let word_count = word_count.word_count();
 		if is_invalid_word_count(word_count) {
 			return Err(Error::BadWordCount(word_count));
 		}
@@ -286,32 +315,32 @@ impl Mnemonic {
 	}
 
 	/// Generate a new [Mnemonic] in the given language.
-	/// For the different supported word counts, see documentation on [Mnemonic].
+	/// For the different supported word counts, see documentation on [WordCount].
 	///
 	/// Example:
 	///
 	/// ```
-	/// use bip39::{Mnemonic, Language};
+	/// use bip39::{Mnemonic, Language, WordCount};
 	///
-	/// let m = Mnemonic::generate_in(Language::English, 24).unwrap();
+	/// let m = Mnemonic::generate_in(Language::English, WordCount::Words24).unwrap();
 	/// ```
 	#[cfg(feature = "rand")]
-	pub fn generate_in(language: Language, word_count: usize) -> Result<Mnemonic, Error> {
+	pub fn generate_in(language: Language, word_count: WordCount) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in_with(&mut rand::thread_rng(), language, word_count)
 	}
 
 	/// Generate a new [Mnemonic] in English.
-	/// For the different supported word counts, see documentation on [Mnemonic].
+	/// For the different supported word counts, see documentation on [WordCount].
 	///
 	/// Example:
 	///
 	/// ```
-	/// use bip39::Mnemonic;
+	/// use bip39::{Mnemonic, WordCount};
 	///
-	/// let m = Mnemonic::generate(24).unwrap();
+	/// let m = Mnemonic::generate(WordCount::Words24).unwrap();
 	/// ```
 	#[cfg(feature = "rand")]
-	pub fn generate(word_count: usize) -> Result<Mnemonic, Error> {
+	pub fn generate(word_count: WordCount) -> Result<Mnemonic, Error> {
 		Mnemonic::generate_in(Language::English, word_count)
 	}
 
@@ -659,7 +688,7 @@ impl fmt::Debug for Mnemonic {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Mnemonic")
 			.field("lang", &self.language())
-            // TODO(msrv>=1.53): switch to `.finish_non_exhaustive()` once MSRV 1.41 is dropped.
+			// TODO(msrv>=1.53): switch to `.finish_non_exhaustive()` once MSRV 1.41 is dropped.
 			.finish()
 	}
 }
@@ -693,7 +722,7 @@ mod tests {
 	#[test]
 	fn test_language_of() {
 		for lang in Language::ALL {
-			let m = Mnemonic::generate_in(*lang, 24).unwrap();
+			let m = Mnemonic::generate_in(*lang, WordCount::Words24).unwrap();
 			assert_eq!(*lang, Mnemonic::language_of_iter(m.words()).unwrap());
 			assert_eq!(
 				*lang,
@@ -725,15 +754,28 @@ mod tests {
 	#[cfg(feature = "rand")]
 	#[test]
 	fn test_generate() {
-		let _ = Mnemonic::generate(24).unwrap();
-		let _ = Mnemonic::generate_in(Language::English, 24).unwrap();
-		let _ = Mnemonic::generate_in_with(&mut rand::thread_rng(), Language::English, 24).unwrap();
+		let _ = Mnemonic::generate(WordCount::Words24).unwrap();
+		let _ = Mnemonic::generate_in(Language::English, WordCount::Words24).unwrap();
+		let _ = Mnemonic::generate_in_with(
+			&mut rand::thread_rng(),
+			Language::English,
+			WordCount::Words24,
+		)
+		.unwrap();
 	}
 
 	#[cfg(feature = "rand")]
 	#[test]
 	fn test_generate_word_counts() {
-		for word_count in [12, 15, 18, 21, 24].iter() {
+		for word_count in [
+			WordCount::Words12,
+			WordCount::Words15,
+			WordCount::Words18,
+			WordCount::Words21,
+			WordCount::Words24,
+		]
+		.iter()
+		{
 			let _ = Mnemonic::generate(*word_count).unwrap();
 		}
 	}
@@ -1020,16 +1062,17 @@ mod tests {
 
 		let dbg = format!("{:?}", m);
 
-		assert!(dbg.starts_with("Mnemonic {") || dbg.starts_with("Mnemonic(") || dbg.contains("Mnemonic"),
-			"Debug output doesn't look like a struct: {}", dbg);
+		assert!(
+			dbg.starts_with("Mnemonic {")
+				|| dbg.starts_with("Mnemonic(")
+				|| dbg.contains("Mnemonic"),
+			"Debug output doesn't look like a struct: {}",
+			dbg
+		);
 		assert!(dbg.contains("lang"), "Debug must include language info: {}", dbg);
 
 		for w in m.words() {
-			assert!(
-				!dbg.contains(w),
-				"Debug leaked sensitive word: {} (output: {})",
-				w, dbg
-			);
+			assert!(!dbg.contains(w), "Debug leaked sensitive word: {} (output: {})", w, dbg);
 		}
 	}
 
