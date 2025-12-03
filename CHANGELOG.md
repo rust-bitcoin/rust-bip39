@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+# v2.2.1 - Dec. 3, 2025
+- Bump `bitcoin_hashes` dependency to v0.14.0 (#76)
+- Redact `Debug` output of `Mnemonic` (#93)
+- Disable default features for optional `zeroize` dependency (#94)
+
 # v2.2.0
 
 - Unpin unicode-normalization version
