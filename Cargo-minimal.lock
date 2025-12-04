@@ -17,7 +17,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bip39"
-version = "2.2.0"
+version = "2.2.2"
 dependencies = [
  "bip39",
  "bitcoin_hashes",

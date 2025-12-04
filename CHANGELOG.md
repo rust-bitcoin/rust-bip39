@@ -1,6 +1,9 @@
 CHANGELOG
 =========
 
+# v2.2.2 - Dec. 4, 2025
+- Fix `docs.rs` builds (#101)
+
 # v2.2.1 - Dec. 3, 2025
 - Bump `bitcoin_hashes` dependency to v0.14.0 (#76)
 - Redact `Debug` output of `Mnemonic` (#93)
