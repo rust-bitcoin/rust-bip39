@@ -24,7 +24,7 @@
 #![deny(unused_imports)]
 #![deny(missing_docs)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(any(test, feature = "std"))]
 pub extern crate core;
