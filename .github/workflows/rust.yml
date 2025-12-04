@@ -98,3 +98,14 @@ jobs:
         run: cargo install cross --locked
       - name: run cross test
         run: cross test --target s390x-unknown-linux-gnu
+
+  Docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: cargo docs-rs
