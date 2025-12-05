@@ -1,4 +1,5 @@
 use core::fmt;
+use core::str::FromStr;
 
 #[cfg(feature = "chinese-simplified")]
 mod chinese_simplified;
@@ -63,6 +64,68 @@ pub enum Language {
 impl Default for Language {
 	fn default() -> Self {
 		Language::English
+	}
+}
+
+impl FromStr for Language {
+	type Err = ();
+
+	/// Parses a string into a language.
+	///
+	/// The following strings are accepted:
+	/// - "en" or "english" for English
+	/// - "zh-cn" or "chinese-simplified" for Simplified Chinese
+	/// - "zh-tw" or "chinese-traditional" for Traditional Chinese
+	/// - "cs" or "czech" for Czech
+	/// - "fr" or "french" for French
+	/// - "it" or "italian" for Italian
+	/// - "ja" or "japanese" for Japanese
+	/// - "ko" or "korean" for Korean
+	/// - "pt" or "portuguese" for Portuguese
+	/// - "es" or "spanish" for Spanish
+	///
+	/// The matching is case-insensitive.
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		if s.eq_ignore_ascii_case("en") || s.eq_ignore_ascii_case("english") {
+			return Ok(Language::English);
+		}
+		#[cfg(feature = "chinese-simplified")]
+		if s.eq_ignore_ascii_case("zh-cn") || s.eq_ignore_ascii_case("chinese-simplified") {
+			return Ok(Language::SimplifiedChinese);
+		}
+		#[cfg(feature = "chinese-traditional")]
+		if s.eq_ignore_ascii_case("zh-tw") || s.eq_ignore_ascii_case("chinese-traditional") {
+			return Ok(Language::TraditionalChinese);
+		}
+		#[cfg(feature = "czech")]
+		if s.eq_ignore_ascii_case("cs") || s.eq_ignore_ascii_case("czech") {
+			return Ok(Language::Czech);
+		}
+		#[cfg(feature = "french")]
+		if s.eq_ignore_ascii_case("fr") || s.eq_ignore_ascii_case("french") {
+			return Ok(Language::French);
+		}
+		#[cfg(feature = "italian")]
+		if s.eq_ignore_ascii_case("it") || s.eq_ignore_ascii_case("italian") {
+			return Ok(Language::Italian);
+		}
+		#[cfg(feature = "japanese")]
+		if s.eq_ignore_ascii_case("ja") || s.eq_ignore_ascii_case("japanese") {
+			return Ok(Language::Japanese);
+		}
+		#[cfg(feature = "korean")]
+		if s.eq_ignore_ascii_case("ko") || s.eq_ignore_ascii_case("korean") {
+			return Ok(Language::Korean);
+		}
+		#[cfg(feature = "portuguese")]
+		if s.eq_ignore_ascii_case("pt") || s.eq_ignore_ascii_case("portuguese") {
+			return Ok(Language::Portuguese);
+		}
+		#[cfg(feature = "spanish")]
+		if s.eq_ignore_ascii_case("es") || s.eq_ignore_ascii_case("spanish") {
+			return Ok(Language::Spanish);
+		}
+		Err(())
 	}
 }
 
@@ -204,6 +267,77 @@ impl fmt::Display for Language {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[cfg(all(
+		feature = "chinese-simplified",
+		feature = "chinese-traditional",
+		feature = "czech",
+		feature = "french",
+		feature = "italian",
+		feature = "japanese",
+		feature = "korean",
+		feature = "portuguese",
+		feature = "spanish"
+	))]
+	#[test]
+	fn from_str() {
+		assert_eq!(Language::from_str("en"), Ok(Language::English));
+		assert_eq!(Language::from_str("english"), Ok(Language::English));
+		assert_eq!(Language::from_str("zh-cn"), Ok(Language::SimplifiedChinese));
+		assert_eq!(Language::from_str("chinese-simplified"), Ok(Language::SimplifiedChinese));
+		assert_eq!(Language::from_str("zh-tw"), Ok(Language::TraditionalChinese));
+		assert_eq!(Language::from_str("chinese-traditional"), Ok(Language::TraditionalChinese));
+		assert_eq!(Language::from_str("cs"), Ok(Language::Czech));
+		assert_eq!(Language::from_str("czech"), Ok(Language::Czech));
+		assert_eq!(Language::from_str("fr"), Ok(Language::French));
+		assert_eq!(Language::from_str("french"), Ok(Language::French));
+		assert_eq!(Language::from_str("it"), Ok(Language::Italian));
+		assert_eq!(Language::from_str("italian"), Ok(Language::Italian));
+		assert_eq!(Language::from_str("ja"), Ok(Language::Japanese));
+		assert_eq!(Language::from_str("japanese"), Ok(Language::Japanese));
+		assert_eq!(Language::from_str("ko"), Ok(Language::Korean));
+		assert_eq!(Language::from_str("korean"), Ok(Language::Korean));
+		assert_eq!(Language::from_str("pt"), Ok(Language::Portuguese));
+		assert_eq!(Language::from_str("portuguese"), Ok(Language::Portuguese));
+		assert_eq!(Language::from_str("es"), Ok(Language::Spanish));
+		assert_eq!(Language::from_str("spanish"), Ok(Language::Spanish));
+		assert_eq!(Language::from_str("invalid"), Err(()));
+	}
+
+	#[cfg(all(
+		feature = "chinese-simplified",
+		feature = "chinese-traditional",
+		feature = "czech",
+		feature = "french",
+		feature = "italian",
+		feature = "japanese",
+		feature = "korean",
+		feature = "portuguese",
+		feature = "spanish"
+	))]
+	#[test]
+	fn from_str_case_insensitive() {
+		assert_eq!(Language::from_str("EN"), Ok(Language::English));
+		assert_eq!(Language::from_str("English"), Ok(Language::English));
+		assert_eq!(Language::from_str("ZH-CN"), Ok(Language::SimplifiedChinese));
+		assert_eq!(Language::from_str("Chinese-Simplified"), Ok(Language::SimplifiedChinese));
+		assert_eq!(Language::from_str("ZH-TW"), Ok(Language::TraditionalChinese));
+		assert_eq!(Language::from_str("Chinese-Traditional"), Ok(Language::TraditionalChinese));
+		assert_eq!(Language::from_str("CS"), Ok(Language::Czech));
+		assert_eq!(Language::from_str("Czech"), Ok(Language::Czech));
+		assert_eq!(Language::from_str("FR"), Ok(Language::French));
+		assert_eq!(Language::from_str("French"), Ok(Language::French));
+		assert_eq!(Language::from_str("IT"), Ok(Language::Italian));
+		assert_eq!(Language::from_str("Italian"), Ok(Language::Italian));
+		assert_eq!(Language::from_str("JA"), Ok(Language::Japanese));
+		assert_eq!(Language::from_str("Japanese"), Ok(Language::Japanese));
+		assert_eq!(Language::from_str("KO"), Ok(Language::Korean));
+		assert_eq!(Language::from_str("Korean"), Ok(Language::Korean));
+		assert_eq!(Language::from_str("PT"), Ok(Language::Portuguese));
+		assert_eq!(Language::from_str("Portuguese"), Ok(Language::Portuguese));
+		assert_eq!(Language::from_str("ES"), Ok(Language::Spanish));
+		assert_eq!(Language::from_str("Spanish"), Ok(Language::Spanish));
+	}
 
 	#[cfg(all(
 		feature = "chinese-simplified",
