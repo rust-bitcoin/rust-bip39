@@ -22,6 +22,7 @@ chinese-simplified = []
 chinese-traditional = []
 czech = []
 french = []
+german = []
 italian = []
 japanese = []
 korean = []
@@ -33,6 +34,7 @@ all-languages = [
     "chinese-traditional",
     "czech",
     "french",
+    "german",
     "italian",
     "japanese",
     "korean",
