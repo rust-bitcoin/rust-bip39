@@ -166,6 +166,31 @@ impl Language {
 		&self.word_list()[first..first + count]
 	}
 
+	/// Japanese uses ideographic space (U+3000), all others use ASCII space.
+	#[inline]
+	pub fn separator(self) -> &'static str {
+		match self {
+			#[cfg(feature = "japanese")]
+			Language::Japanese => "　", // U+3000 ideographic space
+			_ => " ", // ASCII space for all other languages
+		}
+	}
+
+	/// Split mnemonic into words using language-appropriate separators.
+	/// Japanese uses ideographic spaces (U+3000), others use standard whitespace.
+	pub fn split_mnemonic<'a>(self, mnemonic: &'a str) -> Box<dyn Iterator<Item = &'a str> + 'a> {
+		match self {
+			#[cfg(feature = "japanese")]
+			Language::Japanese => {
+				// For Japanese, only split on ideographic spaces (U+3000)
+				Box::new(mnemonic.split('　').filter(|s| !s.is_empty()))
+			}
+			_ => {
+				Box::new(mnemonic.split_whitespace())
+			}
+		}
+	}
+
 	/// Get the index of the word in the word list.
 	#[inline]
 	pub fn find_word(self, word: &str) -> Option<u16> {
