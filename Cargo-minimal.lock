@@ -2,7 +2,7 @@
 # It is not intended for manual editing.
 [[package]]
 name = "bip39"
-version = "2.2.2"
+version = "2.3.0"
 dependencies = [
  "bip39",
  "bitcoin_hashes",
