@@ -56,6 +56,7 @@ unicode-normalization = { version = "0.1.22", default-features = false, optional
 # Enabling the "rand" feature by default to run the benches
 bip39 = { path = ".", features = ["rand"] }
 bitcoin_hashes = ">=0.12,<0.15" # enable default features for test
+serde_test = "=1.0.117"
 
 
 [package.metadata.docs.rs]

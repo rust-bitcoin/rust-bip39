@@ -71,8 +71,6 @@ extern crate zeroize;
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[macro_use]
-mod internal_macros;
 mod language;
 mod pbkdf2;
 
@@ -200,6 +198,11 @@ impl From<WordCount> for usize {
 /// mnemonic from all the supported languages. (Languages have to be explicitly enabled using
 /// the Cargo features.)
 ///
+/// With the `serde` feature, unambiguous mnemonics serialize as their phrase. Mnemonics whose
+/// phrase matches multiple enabled languages serialize as
+/// `bip39:v1:<language>:<phrase>` so their language survives deserialization. Deserialization
+/// accepts both representations.
+///
 /// Supported number of words are 12, 15, 18, 21, and 24.
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
@@ -214,7 +217,132 @@ pub struct Mnemonic {
 #[cfg(feature = "zeroize")]
 impl zeroize::DefaultIsZeroes for Language {}
 
-serde_string_impl!(Mnemonic, "a BIP-39 Mnemonic Code");
+#[cfg(feature = "serde")]
+const SERDE_TAG_PREFIX: &str = "bip39:v1:";
+
+#[cfg(feature = "serde")]
+fn serde_language_name(language: Language) -> &'static str {
+	match language {
+		Language::English => "english",
+		#[cfg(feature = "chinese-simplified")]
+		Language::SimplifiedChinese => "simplified-chinese",
+		#[cfg(feature = "chinese-traditional")]
+		Language::TraditionalChinese => "traditional-chinese",
+		#[cfg(feature = "czech")]
+		Language::Czech => "czech",
+		#[cfg(feature = "french")]
+		Language::French => "french",
+		#[cfg(feature = "italian")]
+		Language::Italian => "italian",
+		#[cfg(feature = "japanese")]
+		Language::Japanese => "japanese",
+		#[cfg(feature = "korean")]
+		Language::Korean => "korean",
+		#[cfg(feature = "portuguese")]
+		Language::Portuguese => "portuguese",
+		#[cfg(feature = "spanish")]
+		Language::Spanish => "spanish",
+	}
+}
+
+#[cfg(feature = "serde")]
+fn serde_language_from_name(name: &str) -> Option<Language> {
+	match name {
+		"english" => Some(Language::English),
+		#[cfg(feature = "chinese-simplified")]
+		"simplified-chinese" => Some(Language::SimplifiedChinese),
+		#[cfg(feature = "chinese-traditional")]
+		"traditional-chinese" => Some(Language::TraditionalChinese),
+		#[cfg(feature = "czech")]
+		"czech" => Some(Language::Czech),
+		#[cfg(feature = "french")]
+		"french" => Some(Language::French),
+		#[cfg(feature = "italian")]
+		"italian" => Some(Language::Italian),
+		#[cfg(feature = "japanese")]
+		"japanese" => Some(Language::Japanese),
+		#[cfg(feature = "korean")]
+		"korean" => Some(Language::Korean),
+		#[cfg(feature = "portuguese")]
+		"portuguese" => Some(Language::Portuguese),
+		#[cfg(feature = "spanish")]
+		"spanish" => Some(Language::Spanish),
+		_ => None,
+	}
+}
+
+#[cfg(feature = "serde")]
+struct SerdeMnemonic<'a>(&'a Mnemonic);
+
+#[cfg(feature = "serde")]
+impl fmt::Display for SerdeMnemonic<'_> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		f.write_str(SERDE_TAG_PREFIX)?;
+		f.write_str(serde_language_name(self.0.language()))?;
+		f.write_str(":")?;
+		self.0.fmt(f)
+	}
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Mnemonic {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		if let Err(Error::AmbiguousLanguages(_)) = Mnemonic::language_of_iter(self.words()) {
+			serializer.collect_str(&SerdeMnemonic(self))
+		} else {
+			serializer.collect_str(self)
+		}
+	}
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Mnemonic {
+	fn deserialize<D>(deserializer: D) -> Result<Mnemonic, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		struct Visitor;
+
+		impl<'de> serde::de::Visitor<'de> for Visitor {
+			type Value = Mnemonic;
+
+			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+				formatter.write_str("a BIP-39 Mnemonic Code")
+			}
+
+			fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+			where
+				E: serde::de::Error,
+			{
+				if !value.starts_with(SERDE_TAG_PREFIX) {
+					return value.parse().map_err(E::custom);
+				}
+
+				let tagged = &value[SERDE_TAG_PREFIX.len()..];
+				let separator = tagged
+					.find(':')
+					.ok_or_else(|| E::custom("missing BIP-39 mnemonic language separator"))?;
+				let language = serde_language_from_name(&tagged[..separator])
+					.ok_or_else(|| E::custom("unknown BIP-39 mnemonic language"))?;
+				let phrase = &tagged[separator + 1..];
+
+				#[cfg(feature = "unicode-normalization")]
+				{
+					Mnemonic::parse_in(language, phrase).map_err(E::custom)
+				}
+				#[cfg(not(feature = "unicode-normalization"))]
+				{
+					Mnemonic::parse_in_normalized(language, phrase).map_err(E::custom)
+				}
+			}
+		}
+
+		deserializer.deserialize_str(Visitor)
+	}
+}
 
 impl Mnemonic {
 	/// Ensure the content of the [Cow] is normalized UTF8.
@@ -596,11 +724,6 @@ impl Mnemonic {
 	/// The return value is a byte array and the size.
 	/// Use [Mnemonic::to_entropy] (needs `std`) to get a [`Vec<u8>`].
 	pub fn to_entropy_array(&self) -> ([u8; 33], usize) {
-		// We unwrap errors here because this method can only be called on
-		// values that were already previously validated.
-
-		let language = Mnemonic::language_of_iter(self.words()).unwrap();
-
 		// Preallocate enough space for the longest possible word list
 		let mut entropy = [0; 33];
 		let mut cursor = 0;
@@ -608,9 +731,7 @@ impl Mnemonic {
 		let mut remainder = 0;
 
 		let nb_words = self.word_count();
-		for word in self.words() {
-			let idx = language.find_word(word).expect("invalid mnemonic");
-
+		for idx in self.word_indices() {
 			remainder |= ((idx as u32) << (32 - 11)) >> offset;
 			offset += 11;
 
@@ -1050,6 +1171,61 @@ mod tests {
 
 		//greater than 256 bits
 		assert_eq!(Mnemonic::from_entropy(&vec![b'x'; 36]), Err(Error::BadEntropyBitCount(288)));
+	}
+
+	#[cfg(all(feature = "chinese-simplified", feature = "chinese-traditional"))]
+	#[test]
+	fn ambiguous_chinese_mnemonic_entropy_round_trip() {
+		let entropy = [0u8; 16];
+		let languages = [Language::SimplifiedChinese, Language::TraditionalChinese];
+
+		for language in languages.iter() {
+			let mnemonic = Mnemonic::from_entropy_in(*language, &entropy).unwrap();
+			let recovered = std::panic::catch_unwind(|| {
+				let (array, len) = mnemonic.to_entropy_array();
+				assert_eq!(&array[..len], &entropy[..]);
+				assert_eq!(mnemonic.to_entropy(), entropy);
+			});
+
+			assert!(
+				recovered.is_ok(),
+				"valid {:?} mnemonic must recover entropy without panicking",
+				language,
+			);
+		}
+	}
+
+	#[cfg(all(feature = "serde", feature = "chinese-simplified", feature = "chinese-traditional"))]
+	#[test]
+	fn serde_preserves_ambiguous_mnemonic_language() {
+		use serde_test::{assert_tokens, Token};
+
+		let entropy = [0u8; 16];
+		let english = Mnemonic::from_entropy_in(Language::English, &entropy).unwrap();
+		assert_tokens(
+			&english,
+			&[Token::Str(
+				"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+			)],
+		);
+
+		let cases = [
+			(
+				Language::SimplifiedChinese,
+				"bip39:v1:simplified-chinese:\
+				 的 的 的 的 的 的 的 的 的 的 的 在",
+			),
+			(
+				Language::TraditionalChinese,
+				"bip39:v1:traditional-chinese:\
+				 的 的 的 的 的 的 的 的 的 的 的 在",
+			),
+		];
+
+		for &(language, serialized) in &cases {
+			let mnemonic = Mnemonic::from_entropy_in(language, &entropy).unwrap();
+			assert_tokens(&mnemonic, &[Token::Str(serialized)]);
+		}
 	}
 
 	#[test]
