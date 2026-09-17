@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-# v2.3.0 - Aug. 20, 2026
+# v3.0.0 - Sep. 17, 2026
 - Add `WordCount` for mnemonic generation (#98)
 - Use the operating system RNG for mnemonic generation and require rand v0.7 or newer (#105)
 - Add complete multilingual prefix lookup and deprecate the incomplete slice-based API (#104)
