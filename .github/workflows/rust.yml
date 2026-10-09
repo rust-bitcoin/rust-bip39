@@ -66,6 +66,19 @@ jobs:
           DO_FEATURE_MATRIX: true
         run: ./contrib/test.sh
 
+  CompactMSRV:
+    name: Test compact-wordlist - 1.46.0 toolchain
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@1.46.0
+      - name: Test compact storage with minimum dependency versions
+        run: |
+          cp Cargo-minimal.lock Cargo.lock
+          cargo test --locked --features="compact-wordlist"
+
   Arch32bit:
     name: Test 32-bit version
     runs-on: ubuntu-latest

@@ -7,6 +7,11 @@ FEATURES="serde rand all-languages chinese-simplified chinese-traditional czech 
 cargo --version
 rustc --version
 
+# Compile-time loops used by compact-wordlist require Rust 1.46 or newer.
+if cargo --version | grep -v "1\.41"; then
+    FEATURES="$FEATURES compact-wordlist"
+fi
+
 # Pin dependencies as required if we are using MSRV toolchain.
 if cargo --version | grep "1\.41"; then
     cp Cargo-minimal.lock Cargo.lock
@@ -70,3 +75,7 @@ do
     echo "********* Testing $feature *************"
     cargo test --verbose --features="$feature"
 done
+
+if cargo --version | grep -v "1\.41"; then
+    cargo test --verbose --features="compact-wordlist all-languages zeroize"
+fi

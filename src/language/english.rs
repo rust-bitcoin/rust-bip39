@@ -1,4 +1,14 @@
-pub const WORDS: [&str; 2048] = [
+// Keep one canonical word list for both representations. concat! builds a valid string at
+// compile time, so compact lookup can borrow a slice without a UTF-8 conversion.
+macro_rules! english_words {
+	($($word:literal),* $(,)?) => {
+		pub const WORDS: [&str; 2048] = [$($word),*];
+		#[cfg(feature = "compact-wordlist")]
+		const TEXT: &str = concat!($($word),*);
+	};
+}
+
+english_words![
 	"abandon",
 	"ability",
 	"able",
@@ -2048,3 +2058,75 @@ pub const WORDS: [&str; 2048] = [
 	"zone",
 	"zoo",
 ];
+
+// Build compact storage from the canonical list so there is only one word list to maintain.
+// Unlike WORDS, this representation needs no pointer/length pair for each word.
+#[cfg(feature = "compact-wordlist")]
+pub(super) mod compact {
+	use super::{TEXT, WORDS};
+
+	// Reject offsets or lengths that cannot be encoded. This array-length assertion works
+	// on Rust 1.46, before assertions in const evaluation were supported.
+	const _: [(); 1] = [(); {
+		let mut valid = TEXT.len() <= 0xffff;
+		let mut i = 0;
+		while i < WORDS.len() {
+			let len = WORDS[i].as_bytes().len();
+			valid = valid && len >= 3 && len <= 10;
+			i += 1;
+		}
+		valid as usize
+	}];
+
+	// TEXT holds the word bytes without padding. Each group of sixteen words has one
+	// u64 index entry: its starting byte offset in the low 16 bits, then sixteen 3-bit
+	// lengths, encoded as length minus 3. The current English words are 3 to 8 bytes long.
+	const BLOCKS: [u64; 128] = {
+		let mut blocks = [0; 128];
+		let mut position = 0;
+		let mut i = 0;
+		while i < WORDS.len() {
+			let word = WORDS[i].as_bytes();
+			if i % 16 == 0 {
+				blocks[i / 16] = position as u64;
+			}
+			blocks[i / 16] |= ((word.len() - 3) as u64) << (16 + 3 * (i % 16));
+			position += word.len();
+			i += 1;
+		}
+		blocks
+	};
+
+	pub fn word_at(index: usize) -> Option<&'static str> {
+		if index >= WORDS.len() {
+			return None;
+		}
+		let block = BLOCKS[index / 16];
+		let mut start = (block & 0xffff) as usize;
+		let mut lengths = block >> 16;
+		let mut i = 0;
+		// Sum at most fifteen lengths to locate the word within its block.
+		while i < index % 16 {
+			start += (lengths & 7) as usize + 3;
+			lengths >>= 3;
+			i += 1;
+		}
+		let len = (lengths & 7) as usize + 3;
+		TEXT.get(start..start + len)
+	}
+
+	pub fn find_word(word: &str) -> Option<u16> {
+		// Search indices because the compact representation has no slice of whole words.
+		let mut low = 0;
+		let mut high = WORDS.len();
+		while low < high {
+			let mid = low + (high - low) / 2;
+			match word_at(mid).unwrap().cmp(word) {
+				core::cmp::Ordering::Less => low = mid + 1,
+				core::cmp::Ordering::Greater => high = mid,
+				core::cmp::Ordering::Equal => return Some(mid as u16),
+			}
+		}
+		None
+	}
+}

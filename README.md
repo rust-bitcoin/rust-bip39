@@ -27,6 +27,30 @@ Use the `all-languages` feature to enable all languages.
 - Spanish (`spanish`)
 
 
+## Compact English word storage
+
+The optional `compact-wordlist` feature stores English words in a single 11,068-byte string,
+with a 1,024-byte index instead of a separate pointer/length pair for every word. Each group of
+sixteen words has one 64-bit index entry containing a 16-bit starting offset and sixteen 3-bit
+lengths, encoded as length minus three. Accessing a word sums at most fifteen preceding lengths
+and returns a borrowed slice of the string without a UTF-8 conversion. English word lookup uses
+binary search over these indexed words. Other languages keep their existing storage.
+
+A small macro generates both the original word array and the compact string from one canonical
+list of literals. The index is generated at compile time, with checks that offsets and lengths
+fit the format.
+
+Use `Language::word_at`, `Language::words_by_prefix_iter`, and `Mnemonic::words` to access words
+without retaining the original English table. Mnemonic generation, parsing, lookup, and seed
+derivation also use compact storage when this feature is enabled. No heap allocation is needed
+to access a word, and word contents and BIP-39 indices are unchanged.
+
+All existing APIs remain available. Calling `Language::word_list` or the deprecated
+`Language::words_by_prefix` retains the original table of string references. Applications using
+both representations can have a larger binary; size savings depend on the linker discarding
+the unused original table. The feature is disabled by default.
+
+
 ## MSRV
 
 This crate supports Rust v1.41.1 and up and works with `no_std`.
@@ -49,3 +73,5 @@ cargo update --package "ppv-lite86" --precise "0.2.17"
 ```
 
 If you enable the `zeroize` feature the MSRV becomes 1.51.
+
+The `compact-wordlist` feature requires Rust 1.46 or newer for compile-time table generation.

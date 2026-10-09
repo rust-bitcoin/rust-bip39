@@ -487,8 +487,7 @@ impl Mnemonic {
 	/// }
 	/// ```
 	pub fn words(&self) -> impl Iterator<Item = &'static str> + Clone + '_ {
-		let list = self.lang.word_list();
-		self.word_indices().map(move |i| list[i])
+		self.word_indices().map(move |i| self.lang.word_at(i).unwrap())
 	}
 
 	/// Returns an iterator over the words of the [Mnemonic].

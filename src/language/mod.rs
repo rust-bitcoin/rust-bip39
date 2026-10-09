@@ -99,6 +99,10 @@ impl Language {
 	}
 
 	/// The word list for this language.
+	///
+	/// With `compact-wordlist`, using this method retains the original English word table in
+	/// addition to any compact storage in use. Prefer [Language::word_at] or
+	/// [Language::words_by_prefix_iter] to allow the original table to be omitted from the binary.
 	#[inline]
 	pub fn word_list(self) -> &'static [&'static str; 2048] {
 		match self {
@@ -122,6 +126,20 @@ impl Language {
 			#[cfg(feature = "spanish")]
 			Language::Spanish => &spanish::WORDS,
 		}
+	}
+
+	/// Returns the word at the given BIP-39 index, or `None` if the index is at least 2048.
+	///
+	/// With `compact-wordlist`, English words are borrowed from compact storage without
+	/// allocating. Other languages use the same storage as [Language::word_list].
+	pub fn word_at(self, index: usize) -> Option<&'static str> {
+		#[cfg(feature = "compact-wordlist")]
+		{
+			if self == Language::English {
+				return english::compact::word_at(index);
+			}
+		}
+		self.word_list().get(index).copied()
 	}
 
 	/// Returns true if all words in the list are guaranteed to
@@ -154,6 +172,7 @@ impl Language {
 	/// Get the first contiguous run of words that start with the given prefix.
 	///
 	/// This can omit matches in word lists that are not sorted by Rust string ordering.
+	/// It also retains the original word table when `compact-wordlist` is enabled.
 	#[deprecated(note = "use Language::words_by_prefix_iter for complete results")]
 	pub fn words_by_prefix(self, prefix: &str) -> &[&'static str] {
 		// The words in the word list are ordered lexicographically. This means
@@ -176,7 +195,9 @@ impl Language {
 		self,
 		prefix: &'a str,
 	) -> impl Iterator<Item = &'static str> + Clone + 'a {
-		self.word_list().iter().copied().filter(move |word| word.starts_with(prefix))
+		(0..2048)
+			.map(move |index| self.word_at(index).unwrap())
+			.filter(move |word| word.starts_with(prefix))
 	}
 
 	/// Get the index of the word in the word list.
@@ -185,6 +206,9 @@ impl Language {
 		match self {
 			// English, Portuguese, Italian, and Korean wordlists are already lexicographically
 			// sorted, so they are candidates for optimization via binary_search
+			#[cfg(feature = "compact-wordlist")]
+			Self::English => english::compact::find_word(word),
+			#[cfg(not(feature = "compact-wordlist"))]
 			Self::English => self.word_list().binary_search(&word).map(|x| x as _).ok(),
 			#[cfg(feature = "portuguese")]
 			Self::Portuguese => self.word_list().binary_search(&word).map(|x| x as _).ok(),
@@ -217,6 +241,41 @@ impl fmt::Display for Language {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn test_word_at() {
+		for &language in Language::ALL {
+			for (index, &word) in language.word_list().iter().enumerate() {
+				assert_eq!(language.word_at(index), Some(word));
+			}
+			assert_eq!(language.word_at(2048), None);
+			assert_eq!(language.word_at(usize::max_value()), None);
+		}
+	}
+
+	#[test]
+	fn test_words_by_prefix_iter_all_words() {
+		for &language in Language::ALL {
+			let words: Vec<_> = language.words_by_prefix_iter("").collect();
+			assert_eq!(words.as_slice(), &language.word_list()[..]);
+		}
+	}
+
+	#[test]
+	fn test_find_word_invalid_english() {
+		for word in &[
+			"",
+			"Abandon",
+			"abandon ",
+			" abandon",
+			"abandon\0",
+			"abandonment",
+			"éclair",
+			"zzzzzzzzz",
+		] {
+			assert_eq!(Language::English.find_word(word), None);
+		}
+	}
 
 	#[cfg(all(
 		feature = "chinese-simplified",
