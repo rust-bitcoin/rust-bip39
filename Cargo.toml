@@ -16,6 +16,8 @@ default = [ "std" ]
 std = [ "alloc", "serde/std", "unicode-normalization/std" ]
 rand = [ "crate_rand", "rand_core" ]
 alloc = [ "unicode-normalization" ]
+# Cooperative seed derivation requires Rust 1.85.
+async = []
 
 # Note: English is the standard for bip39 so always included
 chinese-simplified = []

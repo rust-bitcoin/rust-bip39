@@ -66,6 +66,15 @@ jobs:
           DO_FEATURE_MATRIX: true
         run: ./contrib/test.sh
 
+  AsyncMSRV:
+    name: Test async - 1.85.0 toolchain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: cp Cargo-minimal.lock Cargo.lock
+      - run: cargo test --no-default-features --features="async all-languages"
+
   Arch32bit:
     name: Test 32-bit version
     runs-on: ubuntu-latest

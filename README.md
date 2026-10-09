@@ -27,6 +27,16 @@ Use the `all-languages` feature to enable all languages.
 - Spanish (`spanish`)
 
 
+## Async seed derivation
+
+Enable the `async` feature to use `Mnemonic::to_seed_normalized_async`. Pass an
+NFKD-normalized passphrase and an async callback that yields to your executor.
+The callback is awaited after each PBKDF2 round (2048 times).
+No particular async runtime is required.
+
+This feature requires Rust 1.85 and works without `std` or `alloc`.
+
+
 ## MSRV
 
 This crate supports Rust v1.41.1 and up and works with `no_std`.

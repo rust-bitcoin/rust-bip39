@@ -709,6 +709,34 @@ impl Mnemonic {
 		seed
 	}
 
+	/// Async version of `to_seed_normalized`.
+	///
+	/// The passphrase must already be NFKD-normalized. `yield_now` is awaited after
+	/// each PBKDF2 round (2048 times), allowing the caller to yield
+	/// to its executor without requiring a particular async runtime.
+	///
+	/// Requires the `async` feature and Rust 1.85. Works without `std` or `alloc`.
+	#[cfg(feature = "async")]
+	pub async fn to_seed_normalized_async(
+		&self,
+		normalized_passphrase: &str,
+		yield_now: impl core::ops::AsyncFn(),
+	) -> [u8; 64] {
+		const PBKDF2_ROUNDS: usize = 2048;
+		const PBKDF2_BYTES: usize = 64;
+
+		let mut seed = [0u8; PBKDF2_BYTES];
+		pbkdf2::pbkdf2_async(
+			self.words(),
+			normalized_passphrase.as_bytes(),
+			PBKDF2_ROUNDS,
+			&mut seed,
+			yield_now,
+		)
+		.await;
+		seed
+	}
+
 	/// Convert to seed bytes.
 	#[cfg(feature = "unicode-normalization")]
 	pub fn to_seed<'a, P: Into<Cow<'a, str>>>(&self, passphrase: P) -> [u8; 64] {
